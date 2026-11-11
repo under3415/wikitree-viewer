@@ -366,7 +366,7 @@ test/
   fixtures/      real API response shapes used by the tests
   helpers/       localisations for tests that check wording
 tool/            the launcher-icon renderer
-store/           Play Store listing copy in the five languages
+store/           Play Store listing copy and data-safety answers
 docs/privacy/    the privacy policy page, ready for GitHub Pages
 ```
 

@@ -317,7 +317,8 @@ Play asks a few things this text does not cover, and they matter for review:
 
 - **Data safety form**: the app collects nothing but anonymous crash diagnostics.
   Declare "Crash logs" as collected, not shared, for app functionality, and state
-  that it is not linked to the user. Everything else is "no".
+  that it is not linked to the user. Everything else is "no". The exact answers,
+  for both Play and Apple, are in `store/data-safety.md`.
 - **Ads**: no. **In-app purchases**: no, and the listing must not suggest otherwise.
 - **App access**: no login, so answer "all functionality is available without
   special access" and give the reviewers nothing to sign in with.
