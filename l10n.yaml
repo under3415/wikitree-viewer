@@ -1,0 +1,14 @@
+# Generates the localisations from the ARB files in lib/l10n.
+#
+# `flutter pub get` and `flutter build` regenerate lib/l10n/app_localizations*.dart
+# automatically; run `flutter gen-l10n` by hand after editing an .arb file.
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+nullable-getter: false
+# A device set to a language the app does not speak gets English, not whichever
+# language happens to sort first.
+preferred-supported-locales: [en]
+# Every key must exist in every language; this file lists anything missing.
+untranslated-messages-file: l10n_untranslated.json

@@ -1,0 +1,92 @@
+[
+  {
+    "status": "0",
+    "items": [
+      {
+        "key": "Clemens-1",
+        "user_id": 5185,
+        "user_name": "Clemens-1",
+        "person": {
+          "Id": 5185,
+          "Name": "Clemens-1",
+          "FirstName": "Samuel",
+          "LastNameAtBirth": "Clemens",
+          "BirthDate": "1835-11-30",
+          "DeathDate": "1910-04-21",
+          "Father": 5186,
+          "Mother": 5188,
+          "Siblings": {
+            "5191": {
+              "Id": 5191,
+              "Name": "Clemens-3",
+              "FirstName": "Orion",
+              "LastNameAtBirth": "Clemens",
+              "BirthDate": "1825-10-06",
+              "DeathDate": "1897-12-01",
+              "Father": 5186,
+              "Mother": 5188
+            },
+            "5194": {
+              "Id": 5194,
+              "Name": "Clemens-5",
+              "FirstName": "Pamela",
+              "LastNameAtBirth": "Clemens",
+              "BirthDate": "1827-09-13",
+              "DeathDate": "1904-08-15",
+              "Father": 5186,
+              "Mother": 5188
+            }
+          },
+          "Children": {
+            "3586": {
+              "Id": 3586,
+              "Name": "Clemens-10",
+              "FirstName": "Samuel",
+              "LastNameAtBirth": "Clemens",
+              "BirthDate": "1873-00-00",
+              "Father": 5185,
+              "Mother": 5256
+            }
+          },
+          "Spouses": {
+            "5256": {
+              "Id": "5256",
+              "Name": "Langdon-1",
+              "FirstName": "Olivia",
+              "MiddleName": "Louise",
+              "LastNameAtBirth": "Langdon",
+              "LastNameCurrent": "Clemens",
+              "BirthDate": "1845-11-27",
+              "DeathDate": "1904-06-05",
+              "marriage_date": "1870-02-02",
+              "marriage_end_date": "0000-00-00",
+              "marriage_location": "Elmira, New York, USA",
+              "do_not_display": "0"
+            },
+            "6001": {
+              "Id": "6001",
+              "Name": "Jones-100",
+              "FirstName": "Ada",
+              "LastNameAtBirth": "Jones",
+              "BirthDate": "1849-01-01",
+              "DeathDate": "1922-01-01",
+              "marriage_date": "1880-05-01",
+              "marriage_end_date": "1885-06-01",
+              "marriage_location": "Hartford, Connecticut, USA",
+              "do_not_display": "0"
+            },
+            "6002": {
+              "Id": "6002",
+              "Name": "Hidden-2",
+              "FirstName": "Hidden",
+              "LastNameAtBirth": "Hidden",
+              "marriage_date": "1890-01-01",
+              "marriage_end_date": "0000-00-00",
+              "do_not_display": "1"
+            }
+          }
+        }
+      }
+    ]
+  }
+]

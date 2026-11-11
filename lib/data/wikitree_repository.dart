@@ -1,0 +1,235 @@
+import '../core/constants.dart';
+import '../core/failures.dart';
+import 'family_graph.dart';
+import 'key_parser.dart';
+import 'person.dart';
+import 'wikitree_api.dart';
+
+/// Everything needed to draw the area around one starting person.
+class FocusBundle {
+  const FocusBundle({
+    required this.focus,
+    required this.graph,
+    required this.ancestorDepth,
+    required this.descendantDepth,
+  });
+
+  final Person focus;
+  final FamilyGraph graph;
+  final int ancestorDepth;
+  final int descendantDepth;
+
+  List<Person> get parents => graph.parentsOf(focus);
+  List<Person> get children => graph.childrenOf(focus);
+  List<Person> get siblings => graph.fullSiblingsOf(focus);
+  List<Person> get halfSiblings => graph.halfSiblingsOf(focus);
+  List<SpouseLink> get spouses => graph.visibleSpousesOf(focus.id);
+}
+
+/// Fetches and merges WikiTree data for one starting person.
+///
+/// Two requests are enough:
+///   1. `getPeople` with ancestors/descendants - the family cone.
+///   2. `getRelatives` for siblings and spouses (and marriage details).
+///
+/// `nuclear=1` is deliberately not used: requesting it on the first call pulls
+/// in every ancestor's siblings too, which measured five times larger for data
+/// the tree does not draw.
+class WikiTreeRepository {
+  WikiTreeRepository({required this.api});
+
+  final WikiTreeApi api;
+
+  FamilyGraph _graph = FamilyGraph();
+
+  FamilyGraph get graph => _graph;
+
+  Future<FocusBundle> loadFocus(
+    String input, {
+    int? ancestors,
+    int? descendants,
+  }) async {
+    final parsed = KeyParser.parse(input);
+    final ancestorDepth = ancestors ?? ApiConfig.ancestorsDepth;
+    final descendantDepth = descendants ?? ApiConfig.descendantsDepth;
+
+    WikiTreeFailure? lastFailure;
+    for (final candidate in _casingVariants(parsed.wikiTreeId)) {
+      try {
+        final response = await api.getPeople(
+          key: candidate,
+          ancestors: ancestorDepth,
+          descendants: descendantDepth,
+        );
+        if (response.people.isEmpty) throw const NotFoundFailure();
+
+        _graph.addAll(response.people);
+        var focus =
+            _graph.byId(response.resolvedId) ??
+            _graph.byWikiTreeId(candidate) ??
+            response.people.first;
+
+        await _loadHorizontalRelatives(focus);
+        focus = _graph.byId(focus.id) ?? focus;
+
+        return FocusBundle(
+          focus: focus,
+          graph: _graph,
+          ancestorDepth: ancestorDepth,
+          descendantDepth: descendantDepth,
+        );
+      } on NotFoundFailure catch (failure) {
+        lastFailure = failure;
+      }
+    }
+
+    throw lastFailure ?? const NotFoundFailure();
+  }
+
+  /// How many recorded children [people] have that are not on screen yet.
+  ///
+  /// WikiTree sends a person's children only when those children happen to be
+  /// part of the same answer, so "is there anybody below this row?" has to be
+  /// asked. [WikiTreeApi.probeChildren] asks for ids only, which is cheap.
+  ///
+  /// [shown] is what the tree is drawing, not what is in memory: a person can be
+  /// in the graph from an earlier look and still be below the bottom row.
+  Future<int> hiddenChildCount(
+    Iterable<Person> people, {
+    required Set<int> shown,
+  }) async {
+    final row = <String, int>{
+      for (final person in people)
+        if (person.id > 0) person.wikiTreeId: person.id,
+    };
+    if (row.isEmpty) return 0;
+
+    final byKey = await api.probeChildren(
+      keys: row.keys.toList(growable: false),
+    );
+
+    final hidden = <int>{};
+    final withheld = <String>[];
+    for (final entry in row.entries) {
+      final ids = byKey[entry.key];
+      if (ids == null) {
+        // WikiTree would not say. Guessing here is what puts a button on screen
+        // that can only disappoint, so ask properly below.
+        withheld.add(entry.key);
+        continue;
+      }
+      for (final id in ids) {
+        if (!shown.contains(id)) hidden.add(id);
+      }
+    }
+
+    if (withheld.isNotEmpty) {
+      // Private profiles never list their children, but the generation itself
+      // does come back - as limited records. Only the withheld people are asked
+      // about, and private records are tiny: a living parent with three
+      // children measured 2.2 KB.
+      //
+      // That answer also echoes the people asked about (and sometimes their
+      // siblings, which are on the same row anyway), so anything already in the
+      // row or on screen is not counted as "below".
+      final response = await api.getPeople(
+        key: withheld.join(','),
+        descendants: 1,
+      );
+      final rowIds = withheld.map((key) => row[key]).whereType<int>().toSet();
+      for (final person in response.people) {
+        if (rowIds.contains(person.id) || shown.contains(person.id)) continue;
+        hidden.add(person.id);
+      }
+    }
+
+    return hidden.length;
+  }
+
+  /// Loads (and caches in the graph) siblings and spouses of one person. Used
+  /// by the tree and details views so any person can be explored without
+  /// leaving what is already on screen.
+  Future<RelativeGroup?> loadRelatives(Person person) async {
+    final response = await api.getRelatives(keys: <String>[person.wikiTreeId]);
+    if (response.groups.isEmpty) return null;
+    final group = response.groups.first;
+    _mergeGroup(group);
+    return group;
+  }
+
+  /// A bundle centred on someone already in the graph, with no network call.
+  ///
+  /// Used by the details view: the person was tapped in a tree that has already
+  /// loaded their closest relatives, so everything shown is already in memory.
+  FocusBundle bundleFor(Person person, {int? ancestors, int? descendants}) {
+    return FocusBundle(
+      focus: _graph.byId(person.id) ?? person,
+      graph: _graph,
+      ancestorDepth: ancestors ?? ApiConfig.ancestorsDepth,
+      descendantDepth: descendants ?? ApiConfig.descendantsDepth,
+    );
+  }
+
+  /// Drops everything fetched so far. Profile data is never persisted, so this
+  /// is all it takes to comply with WikiTree's caching rules.
+  void clear() {
+    _graph = FamilyGraph();
+  }
+
+  Future<void> _loadHorizontalRelatives(Person focus) async {
+    try {
+      await loadRelatives(focus);
+    } on WikiTreeFailure {
+      // Non-fatal: the tree is still useful without siblings and spouses.
+    }
+  }
+
+  void _mergeGroup(RelativeGroup group) {
+    _graph.add(group.person);
+    _graph.addAll(group.parents);
+    _graph.addAll(group.children);
+    _graph.addAll(group.siblings);
+    _graph.addSpouses(group.person.id, group.spouses);
+  }
+
+  /// WikiTree IDs are case sensitive in the surname. Typing `einstein-1` is easy
+  /// to do, so a rejected key is retried once with the surname capitalised.
+  static List<String> _casingVariants(String wikiTreeId) {
+    final dash = wikiTreeId.lastIndexOf('-');
+    if (dash <= 0) return <String>[wikiTreeId];
+
+    final surname = wikiTreeId.substring(0, dash);
+    final number = wikiTreeId.substring(dash);
+    if (surname.isEmpty) return <String>[wikiTreeId];
+
+    final variants = <String>{wikiTreeId};
+    variants.add(surname[0].toUpperCase() + surname.substring(1) + number);
+    if (surname == surname.toUpperCase()) {
+      variants.add(_titleCase(surname) + number);
+    }
+    // WikiTree accepts an all-lowercase surname (`einstein-1` resolves) even
+    // though it rejects all-caps and mixed case, so this is the safety net for
+    // a surname whose real spelling is not capitalised.
+    variants.add(surname.toLowerCase() + number);
+    return variants.toList(growable: false);
+  }
+
+  static String _titleCase(String surname) {
+    final buffer = StringBuffer();
+    var capitaliseNext = true;
+    for (final rune in surname.runes) {
+      final character = String.fromCharCode(rune);
+      final isLetter = character.toUpperCase() != character.toLowerCase();
+      if (capitaliseNext && isLetter) {
+        buffer.write(character.toUpperCase());
+        capitaliseNext = false;
+      } else {
+        buffer.write(character.toLowerCase());
+        if (character == "'" || character == '-' || character == '_') {
+          capitaliseNext = true;
+        }
+      }
+    }
+    return buffer.toString();
+  }
+}

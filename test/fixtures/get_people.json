@@ -1,0 +1,99 @@
+[
+  {
+    "status": "",
+    "resultByKey": { "Clemens-1": { "Id": 5185 } },
+    "people": {
+      "5185": {
+        "Id": 5185,
+        "PageId": 7146,
+        "Name": "Clemens-1",
+        "FirstName": "Samuel",
+        "MiddleName": "Langhorne",
+        "LastNameAtBirth": "Clemens",
+        "LastNameCurrent": "Clemens",
+        "RealName": "Samuel",
+        "Prefix": "",
+        "Suffix": "",
+        "BirthDate": "1835-11-30",
+        "DeathDate": "1910-04-21",
+        "BirthLocation": "Florida, Monroe, Missouri, United States",
+        "DeathLocation": "Redding, Fairfield, Connecticut, United States",
+        "Gender": "Male",
+        "IsLiving": 0,
+        "Privacy": 60,
+        "Photo": "1871-Samuel_Clemens.jpg",
+        "Privacy_IsPrivate": false,
+        "Privacy_IsOpen": true,
+        "Privacy_IsAtLeastPublic": true,
+        "PhotoData": {
+          "path": "/photo.php/0/08/1871-Samuel_Clemens.jpg",
+          "url": "/photo.php/thumb/0/08/1871-Samuel_Clemens.jpg/75px-1871-Samuel_Clemens.jpg",
+          "file": "75px-1871-Samuel_Clemens.jpg",
+          "dir": "/photo.php/thumb/0/08",
+          "width": 75,
+          "height": 118
+        },
+        "Father": 5186,
+        "Mother": 5188
+      },
+      "5186": {
+        "Id": 5186,
+        "PageId": 7147,
+        "Name": "Clemens-2",
+        "FirstName": "John",
+        "LastNameAtBirth": "Clemens",
+        "LastNameCurrent": "Clemens",
+        "BirthDate": "1798-08-11",
+        "DeathDate": "1847-03-24",
+        "Gender": "Male",
+        "IsLiving": 0,
+        "Privacy": 60,
+        "PhotoData": null,
+        "Father": 5201,
+        "Mother": 5202
+      },
+      "5188": {
+        "Id": 5188,
+        "PageId": 7150,
+        "Name": "Lampton-1",
+        "FirstName": "Jane",
+        "MiddleName": "Casey",
+        "LastNameAtBirth": "Lampton",
+        "LastNameCurrent": "Clemens",
+        "BirthDate": "1803-06-18",
+        "DeathDate": "1890-10-27",
+        "Gender": "Female",
+        "IsLiving": 0,
+        "Privacy": 60,
+        "Father": 0,
+        "Mother": 0
+      },
+      "3586": {
+        "Id": 3586,
+        "Name": "Clemens-10",
+        "FirstName": "Samuel",
+        "LastNameAtBirth": "Clemens",
+        "BirthDate": "1873-00-00",
+        "DeathDate": "1909-00-00",
+        "Father": 5185,
+        "Mother": 5256
+      },
+      "3637": {
+        "Id": 3637,
+        "Name": "Langdon-2",
+        "FirstName": "Olivia",
+        "LastNameAtBirth": "Langdon",
+        "BirthDate": "1872-00-00",
+        "DeathDate": "1966-00-00",
+        "Father": 5256,
+        "Mother": 5258
+      },
+      "9999": {
+        "Id": 9999,
+        "Name": "Living-9999",
+        "IsPerson": 1,
+        "Privacy_IsPrivate": true
+      }
+    }
+  }
+]

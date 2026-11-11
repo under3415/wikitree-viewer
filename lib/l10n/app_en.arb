@@ -1,0 +1,258 @@
+{
+  "@@locale": "en",
+  "appTitle": "WikiTree Viewer",
+  "@appTitle": {
+    "description": "The app name. A brand: keep it untranslated."
+  },
+  "tagline": "Your family tree, one tap at a time.",
+  "disclaimer": "Unofficial viewer. Family data comes from WikiTree.com and remains subject to their terms. Nothing is edited or stored on this device.",
+  "loadingFamily": "Loading family…",
+
+  "lookupLabel": "Family code or link",
+  "lookupHelper": "For example Einstein-1, or paste a wikitree.com/wiki link",
+  "lookupClear": "Clear",
+  "lookupSubmit": "Show family tree",
+  "lookupBusy": "Looking up…",
+  "lookupPaste": "Paste a link",
+  "lookupExamplePrompt": "First time here? Try the example to see how a tree looks.",
+  "lookupTryExample": "Try {code}",
+  "@lookupTryExample": {
+    "description": "Button that opens the example profile.",
+    "placeholders": {
+      "code": {
+        "type": "String",
+        "example": "Einstein-1"
+      }
+    }
+  },
+
+  "treeHomeTooltip": "Back to {name}",
+  "@treeHomeTooltip": {
+    "description": "Tooltip on the home button of the tree; jumps back to the person the tree started on.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Albert Einstein"
+      }
+    }
+  },
+  "moreCount": "{count, plural, =1{1 more} other{{count} more}}",
+  "@moreCount": {
+    "description": "Label of the buttons that load another generation, where WikiTree knows how many people are waiting.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "moreUnknown": "More",
+  "@moreUnknown": {
+    "description": "Label used when the count of people waiting could not be fetched."
+  },
+  "shareTooltip": "Share this family",
+  "shareSheetTitle": "Share this family",
+  "shareWithApp": "Share with an app",
+  "shareWithAppSubtitle": "Messages, email, WhatsApp and the rest",
+  "shareCopyLink": "Copy the link",
+  "shareCopyLinkSubtitle": "Paste it wherever you like",
+  "shareCopied": "Link copied. Paste it anywhere.",
+  "shareFailed": "This device can't share. Try copying the link.",
+  "shareSubject": "Family tree: {name}",
+  "@shareSubject": {
+    "description": "Subject line handed to the share sheet.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+
+  "shareTitleWithDates": "{name} ({lifeSpan}) on WikiTree",
+  "@shareTitleWithDates": {
+    "description": "First line of a shared message, for somebody with known dates.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "lifeSpan": {
+        "type": "String",
+        "example": "1879–1955"
+      }
+    }
+  },
+  "shareTitle": "{name} on WikiTree",
+  "@shareTitle": {
+    "description": "First line of a shared message, for somebody whose dates are unknown.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "shareOpenIn": "Open in {app}: {link}",
+  "@shareOpenIn": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      },
+      "link": {
+        "type": "String"
+      }
+    }
+  },
+  "shareInstall": "Don't have {app} yet? {url}",
+  "@shareInstall": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      },
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+
+  "privateProfile": "Private profile",
+  "@privateProfile": {
+    "description": "Shown in place of a name when WikiTree releases nothing about a person except their id."
+  },
+  "notPublic": "Not public",
+  "@notPublic": {
+    "description": "Second line under a name in the tree whose profile is not public."
+  },
+  "nameLater": "{name} (later {surname})",
+  "@nameLater": {
+    "description": "Full name of somebody who took a different surname later in life.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Anna Maria Schmidt"
+      },
+      "surname": {
+        "type": "String",
+        "example": "Meyer"
+      }
+    }
+  },
+  "yearRange": "{birth}–{death}",
+  "@yearRange": {
+    "description": "Years of birth and death. Keep the en dash between the placeholders.",
+    "placeholders": {
+      "birth": {
+        "type": "int"
+      },
+      "death": {
+        "type": "int"
+      }
+    }
+  },
+  "bornYear": "b. {year}",
+  "@bornYear": {
+    "description": "Abbreviation of 'born', used when somebody has no death date.",
+    "placeholders": {
+      "year": {
+        "type": "int"
+      }
+    }
+  },
+  "diedYear": "d. {year}",
+  "@diedYear": {
+    "description": "Abbreviation of 'died', used when the birth date is unknown.",
+    "placeholders": {
+      "year": {
+        "type": "int"
+      }
+    }
+  },
+  "datesUnknown": "Dates unknown",
+  "unknown": "Unknown",
+  "married": "m. {date}",
+  "@married": {
+    "description": "Abbreviation of 'married', followed by the marriage date.",
+    "placeholders": {
+      "date": {
+        "type": "String",
+        "example": "2 Feb 1870"
+      }
+    }
+  },
+  "marriedAndEnded": "m. {start}, ended {end}",
+  "@marriedAndEnded": {
+    "description": "A marriage that ended, by divorce or by death.",
+    "placeholders": {
+      "start": {
+        "type": "String"
+      },
+      "end": {
+        "type": "String"
+      }
+    }
+  },
+  "personSemantics": "{name}, {lifeSpan}",
+  "@personSemantics": {
+    "description": "Screen-reader label for a photo or monogram.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "lifeSpan": {
+        "type": "String"
+      }
+    }
+  },
+  "treeMiddleSemantics": "middle of the tree",
+  "@treeMiddleSemantics": {
+    "description": "Screen-reader suffix for the person the tree is centred on."
+  },
+  "treeNotPublicSemantics": "profile not public",
+  "@treeNotPublicSemantics": {
+    "description": "Screen-reader suffix for a person whose profile WikiTree keeps hidden."
+  },
+
+  "born": "Born",
+  "died": "Died",
+  "living": "Living",
+  "notRecorded": "Not recorded",
+  "ageAtDeath": "age {age}",
+  "@ageAtDeath": {
+    "placeholders": {
+      "age": {
+        "type": "int"
+      }
+    }
+  },
+  "parents": "Parents",
+  "noParents": "No parents recorded on WikiTree",
+  "spouses": "Spouses",
+  "siblings": "Brothers and sisters",
+  "halfSiblings": "Half-brothers and half-sisters",
+  "children": "Children",
+  "noChildren": "No children recorded on WikiTree",
+  "openOnWikiTree": "Open on WikiTree",
+  "couldNotOpenWikiTree": "Could not open WikiTree.",
+  "privateProfileNotice": "WikiTree limits what it shares about this profile. Dates and places may be missing, and relatives may not be listed.",
+  "marriageEndedNote": "A marriage that ended is shown with its end date.",
+
+  "errorEmptyKey": "Enter a WikiTree ID or a profile link.",
+  "errorTooLongKey": "That's too long to be a WikiTree ID. It usually looks like Einstein-1.",
+  "errorNoIdFound": "We couldn't find a WikiTree ID in that. Try something like Einstein-1.",
+  "errorAmbiguousKey": "That looks like more than one WikiTree ID. Please enter just one.",
+  "errorSpaceProfile": "That's a free-space page, not a person. This app shows people only.",
+  "errorUnsupportedHost": "That link isn't a WikiTree profile link.",
+  "errorMalformedKey": "That WikiTree ID doesn't look right. Example: Einstein-1",
+  "hintPasteLink": "You can also paste a link like https://www.wikitree.com/wiki/Einstein-1",
+  "hintLinkStart": "Links need to start with https://www.wikitree.com/wiki/",
+  "errorNotFound": "We couldn't find that person on WikiTree.",
+  "hintNotFound": "Check the code, or paste the profile link instead.",
+  "errorPrivate": "That profile is private.",
+  "hintPrivate": "WikiTree limits what is shared about living people.",
+  "errorTimeout": "WikiTree took too long to answer.",
+  "errorNetwork": "Can't reach WikiTree.",
+  "hintNetwork": "Check your internet connection, then try again.",
+  "errorRateLimit": "WikiTree asked us to slow down.",
+  "hintRateLimit": "Please wait a minute, then try again.",
+  "errorServer": "WikiTree had a problem answering that.",
+  "hintServer": "This is usually temporary. Please try again.",
+  "errorParse": "We couldn't read WikiTree's answer.",
+  "hintParse": "Please try again in a moment."
+}

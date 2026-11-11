@@ -1,0 +1,10 @@
+# Keep one line-ending policy for every clone, so a Windows checkout and the
+# Linux CI runner see the same bytes.
+* text=auto
+
+# Binary assets: never convert these.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.jks binary
+*.keystore binary

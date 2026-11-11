@@ -1,0 +1,306 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
+
+import 'app_localizations.dart';
+
+// ignore_for_file: type=lint
+
+/// The translations for French (`fr`).
+class AppLocalizationsFr extends AppLocalizations {
+  AppLocalizationsFr([String locale = 'fr']) : super(locale);
+
+  @override
+  String get appTitle => 'WikiTree Viewer';
+
+  @override
+  String get tagline => 'Votre arbre familial, un geste à la fois.';
+
+  @override
+  String get disclaimer =>
+      'Visionneuse non officielle. Les données familiales viennent de WikiTree.com et restent soumises à ses conditions. Rien n\'est modifié ni enregistré sur cet appareil.';
+
+  @override
+  String get loadingFamily => 'Chargement de la famille…';
+
+  @override
+  String get lookupLabel => 'Code familial ou lien';
+
+  @override
+  String get lookupHelper =>
+      'Par exemple Einstein-1, ou collez un lien wikitree.com/wiki';
+
+  @override
+  String get lookupClear => 'Effacer';
+
+  @override
+  String get lookupSubmit => 'Afficher l\'arbre familial';
+
+  @override
+  String get lookupBusy => 'Recherche…';
+
+  @override
+  String get lookupPaste => 'Coller un lien';
+
+  @override
+  String get lookupExamplePrompt =>
+      'Première visite ? Essayez l\'exemple pour voir à quoi ressemble un arbre.';
+
+  @override
+  String lookupTryExample(String code) {
+    return 'Essayer $code';
+  }
+
+  @override
+  String treeHomeTooltip(String name) {
+    return 'Retour à $name';
+  }
+
+  @override
+  String moreCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count de plus',
+      one: '1 de plus',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get moreUnknown => 'Plus';
+
+  @override
+  String get shareTooltip => 'Partager cette famille';
+
+  @override
+  String get shareSheetTitle => 'Partager cette famille';
+
+  @override
+  String get shareWithApp => 'Partager avec une application';
+
+  @override
+  String get shareWithAppSubtitle => 'Messages, e-mail, WhatsApp et autres';
+
+  @override
+  String get shareCopyLink => 'Copier le lien';
+
+  @override
+  String get shareCopyLinkSubtitle => 'Collez-le où vous voulez';
+
+  @override
+  String get shareCopied => 'Lien copié. Collez-le où vous voulez.';
+
+  @override
+  String get shareFailed =>
+      'Cet appareil ne peut pas partager. Essayez de copier le lien.';
+
+  @override
+  String shareSubject(String name) {
+    return 'Arbre familial : $name';
+  }
+
+  @override
+  String shareTitleWithDates(String name, String lifeSpan) {
+    return '$name ($lifeSpan) sur WikiTree';
+  }
+
+  @override
+  String shareTitle(String name) {
+    return '$name sur WikiTree';
+  }
+
+  @override
+  String shareOpenIn(String app, String link) {
+    return 'Ouvrir dans $app : $link';
+  }
+
+  @override
+  String shareInstall(String app, String url) {
+    return '$app n\'est pas encore installé ? $url';
+  }
+
+  @override
+  String get privateProfile => 'Profil privé';
+
+  @override
+  String get notPublic => 'Non public';
+
+  @override
+  String nameLater(String name, String surname) {
+    return '$name (puis $surname)';
+  }
+
+  @override
+  String yearRange(int birth, int death) {
+    return '$birth–$death';
+  }
+
+  @override
+  String bornYear(int year) {
+    return 'n. $year';
+  }
+
+  @override
+  String diedYear(int year) {
+    return 'déc. $year';
+  }
+
+  @override
+  String get datesUnknown => 'Dates inconnues';
+
+  @override
+  String get unknown => 'Inconnu';
+
+  @override
+  String married(String date) {
+    return 'm. $date';
+  }
+
+  @override
+  String marriedAndEnded(String start, String end) {
+    return 'm. $start, fin $end';
+  }
+
+  @override
+  String personSemantics(String name, String lifeSpan) {
+    return '$name, $lifeSpan';
+  }
+
+  @override
+  String get treeMiddleSemantics => 'centre de l\'arbre';
+
+  @override
+  String get treeNotPublicSemantics => 'profil non public';
+
+  @override
+  String get born => 'Naissance';
+
+  @override
+  String get died => 'Décès';
+
+  @override
+  String get living => 'Vivant';
+
+  @override
+  String get notRecorded => 'Non renseigné';
+
+  @override
+  String ageAtDeath(int age) {
+    return '$age ans';
+  }
+
+  @override
+  String get parents => 'Parents';
+
+  @override
+  String get noParents => 'Aucun parent enregistré sur WikiTree';
+
+  @override
+  String get spouses => 'Conjoints';
+
+  @override
+  String get siblings => 'Frères et sœurs';
+
+  @override
+  String get halfSiblings => 'Demi-frères et demi-sœurs';
+
+  @override
+  String get children => 'Enfants';
+
+  @override
+  String get noChildren => 'Aucun enfant enregistré sur WikiTree';
+
+  @override
+  String get openOnWikiTree => 'Ouvrir sur WikiTree';
+
+  @override
+  String get couldNotOpenWikiTree => 'Impossible d\'ouvrir WikiTree.';
+
+  @override
+  String get privateProfileNotice =>
+      'WikiTree limite ce qu\'il partage de ce profil. Des dates et des lieux peuvent manquer, et des proches peuvent ne pas être listés.';
+
+  @override
+  String get marriageEndedNote =>
+      'Un mariage terminé est affiché avec sa date de fin.';
+
+  @override
+  String get errorEmptyKey =>
+      'Saisissez un identifiant WikiTree ou un lien de profil.';
+
+  @override
+  String get errorTooLongKey =>
+      'C\'est trop long pour un identifiant WikiTree. Cela ressemble généralement à Einstein-1.';
+
+  @override
+  String get errorNoIdFound =>
+      'Nous n\'avons pas trouvé d\'identifiant WikiTree là-dedans. Essayez quelque chose comme Einstein-1.';
+
+  @override
+  String get errorAmbiguousKey =>
+      'Cela ressemble à plusieurs identifiants WikiTree. N\'en saisissez qu\'un seul.';
+
+  @override
+  String get errorSpaceProfile =>
+      'C\'est une page libre, pas une personne. Cette application ne montre que des personnes.';
+
+  @override
+  String get errorUnsupportedHost =>
+      'Ce lien n\'est pas un lien de profil WikiTree.';
+
+  @override
+  String get errorMalformedKey =>
+      'Cet identifiant WikiTree ne semble pas correct. Exemple : Einstein-1';
+
+  @override
+  String get hintPasteLink =>
+      'Vous pouvez aussi coller un lien comme https://www.wikitree.com/wiki/Einstein-1';
+
+  @override
+  String get hintLinkStart =>
+      'Les liens doivent commencer par https://www.wikitree.com/wiki/';
+
+  @override
+  String get errorNotFound =>
+      'Nous n\'avons pas trouvé cette personne sur WikiTree.';
+
+  @override
+  String get hintNotFound =>
+      'Vérifiez le code ou collez plutôt le lien du profil.';
+
+  @override
+  String get errorPrivate => 'Ce profil est privé.';
+
+  @override
+  String get hintPrivate =>
+      'WikiTree limite ce qui est partagé sur les personnes vivantes.';
+
+  @override
+  String get errorTimeout => 'WikiTree a mis trop de temps à répondre.';
+
+  @override
+  String get errorNetwork => 'Impossible de joindre WikiTree.';
+
+  @override
+  String get hintNetwork =>
+      'Vérifiez votre connexion Internet, puis réessayez.';
+
+  @override
+  String get errorRateLimit => 'WikiTree nous a demandé de ralentir.';
+
+  @override
+  String get hintRateLimit => 'Veuillez patienter une minute, puis réessayez.';
+
+  @override
+  String get errorServer => 'WikiTree a rencontré un problème en répondant.';
+
+  @override
+  String get hintServer =>
+      'C\'est généralement temporaire. Veuillez réessayer.';
+
+  @override
+  String get errorParse => 'Nous n\'avons pas pu lire la réponse de WikiTree.';
+
+  @override
+  String get hintParse => 'Veuillez réessayer dans un instant.';
+}
