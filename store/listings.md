@@ -24,10 +24,10 @@ Locales match the app's five languages: `en-US`, `de-DE`, `es-ES`, `pt-BR`,
 WikiTree Viewer (unofficial)
 ```
 
-**Short description** (76/80)
+**Short description** (71/80)
 
 ```
-Read-only WikiTree viewer: look up Einstein-1 or Kennedy-96, explore, share.
+WikiTree Viewer: explore and share your or famous people's family trees
 ```
 
 **Full description**
@@ -80,10 +80,10 @@ visit here is the same one the community curates there.
 WikiTree Viewer (inoffiziell)
 ```
 
-**Short description** (70/80)
+**Short description** (68/80)
 
 ```
-Inoffizieller WikiTree-Betrachter: Einstein-1 oder Kennedy-96 ansehen.
+WikiTree Viewer: eigene oder berühmte Stammbäume ansehen und teilen.
 ```
 
 **Full description**
@@ -139,10 +139,10 @@ sehen, ist derselbe, den die Community dort pflegt.
 WikiTree Viewer (no oficial)
 ```
 
-**Short description** (70/80)
+**Short description** (72/80)
 
 ```
-Visor no oficial de WikiTree: mira Einstein-1 o Kennedy-96 y comparte.
+WikiTree Viewer: explora y comparte árboles familiares, tuyos o famosos.
 ```
 
 **Full description**
@@ -196,10 +196,10 @@ es el mismo que cuida la comunidad allí.
 WikiTree Viewer (não oficial)
 ```
 
-**Short description** (74/80)
+**Short description** (76/80)
 
 ```
-Visualizador não oficial do WikiTree: Einstein-1, Kennedy-96, compartilhe.
+WikiTree Viewer: explore e compartilhe árvores da sua família ou de famosos.
 ```
 
 **Full description**
@@ -252,10 +252,10 @@ você vê aqui é a mesma que a comunidade mantém lá.
 WikiTree Viewer (non officiel)
 ```
 
-**Short description** (76/80)
+**Short description** (79/80)
 
 ```
-Visionneuse non officielle de WikiTree : Einstein-1, Kennedy-96, à partager.
+WikiTree Viewer : explorez et partagez des arbres, les vôtres ou de célébrités.
 ```
 
 **Full description**
@@ -306,6 +306,14 @@ que vous voyez ici est celui que la communauté entretient là-bas.
 ## Before you publish
 
 Play asks a few things this text does not cover, and they matter for review:
+
+- **Privacy policy URL** (required by Play *and* by Apple, even for an app that
+  collects nothing): `docs/privacy/index.html` in this repository is ready for
+  GitHub Pages — Settings → Pages → *Deploy from a branch* → `main` / `/docs` —
+  which serves it at `https://under3415.github.io/wikitree-viewer/privacy/`. Fill
+  in the two highlighted placeholders (developer name and contact e-mail) first:
+  a policy without a working contact address is rejected, and the e-mail in it is
+  the address Play shows on your listing.
 
 - **Data safety form**: the app collects nothing but anonymous crash diagnostics.
   Declare "Crash logs" as collected, not shared, for app functionality, and state

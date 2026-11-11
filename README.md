@@ -189,6 +189,13 @@ Never committed (the `.gitignore` covers them):
 There is **no WikiTree API key** to leak: the API is keyless, and `appId` is just
 a label that tells WikiTree who is calling.
 
+The privacy policy lives in `docs/privacy/index.html`, in all five languages on
+one page. Push it as-is and enable GitHub Pages (Settings → Pages → *Deploy from
+a branch*, `main` / `/docs`), and it is served at
+`https://under3415.github.io/wikitree-viewer/privacy/` - the URL both Play Console
+and App Store Connect ask for. Replace the two highlighted placeholders (developer
+name, contact e-mail) before submitting.
+
 ## Firebase / crash reporting
 
 Only anonymous crash diagnostics are collected. There is no analytics, no
@@ -360,6 +367,7 @@ test/
   helpers/       localisations for tests that check wording
 tool/            the launcher-icon renderer
 store/           Play Store listing copy in the five languages
+docs/privacy/    the privacy policy page, ready for GitHub Pages
 ```
 
 ## Data model notes
