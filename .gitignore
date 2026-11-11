@@ -50,6 +50,10 @@ app.*.map.json
 # Widget Preview related
 .widget_preview/
 
+# Firebase CLI unpacks ~11 MB of symbolication tools here on
+# `firebase crashlytics:symbols:upload`. A cache, not source.
+/.crashlytics/
+
 # Signing material. The keystore is the app's identity, not a build artefact:
 # anyone holding it can publish an update that Android treats as this app.
 # `android/.gitignore` covers these too; repeating them here means a keystore
