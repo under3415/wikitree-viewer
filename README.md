@@ -161,6 +161,44 @@ flutter analyze
 flutter test
 ```
 
+## Release builds
+
+Store builds are obfuscated, with the Dart symbols split out so a crash can still be
+read:
+
+```powershell
+flutter build appbundle --release --obfuscate --split-debug-info=build/symbols
+flutter build apk --release --obfuscate --split-debug-info=build/symbols --split-per-abi
+```
+
+`build/symbols/` then holds `app.android-arm.symbols`, `-arm64.symbols` and
+`-x64.symbols` (about 3 MB each). They are the only way back from an obfuscated stack
+trace, they are not in version control, and `flutter clean` deletes them - copy them
+somewhere durable for every version you ship. One set covers both artifacts: building
+the AAB and the per-ABI APKs from the same commit produced byte-identical symbol
+files, because the renaming is deterministic.
+
+Uploading them so Crashlytics reports arrive readable:
+
+```powershell
+firebase crashlytics:symbols:upload --app=1:810951891372:android:c0e8fd3f0704b47cee8209 build/symbols
+```
+
+The Crashlytics Gradle plugin already uploads the Java/Kotlin mapping file by itself;
+the Dart symbols are not its business. `flutter symbolize -i stack.txt -d
+build/symbols/app.android-arm64.symbols` does the same by hand for a trace pasted out
+of the console.
+
+Release builds are signed with the **debug** certificate for now
+(`android/app/build.gradle.kts`), which keeps `flutter run --release` working and
+matches the SHA-1 already registered with Firebase. Play will reject them until the
+upload keystore is wired in - see *Firebase / crash reporting*.
+
+Flutter also prints "The generated ELF library contains unobfuscated DWARF debugging
+information" on these builds. That is native debug information, kept so native frames
+can be symbolised; the Dart identifiers are gone - checked by searching the shipped
+`libapp.so` for class and method names from `lib/`, none survive.
+
 ## The repository
 
 CI (`.github/workflows/ci.yml`) runs the formatting check, `flutter analyze` and
