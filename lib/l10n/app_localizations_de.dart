@@ -26,10 +26,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get lookupLabel => 'Familiencode oder Link';
 
   @override
-  String get lookupHelper =>
-      'Zum Beispiel Einstein-1, oder einen Link auf wikitree.com/wiki einfügen';
-
-  @override
   String get lookupClear => 'Leeren';
 
   @override
@@ -43,7 +39,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get lookupExamplePrompt =>
-      'Zum ersten Mal hier? Probieren Sie das Beispiel aus, um zu sehen, wie ein Stammbaum aussieht.';
+      'Zum ersten Mal hier? Probieren Sie ein Beispiel aus, um zu sehen, wie ein Stammbaum aussieht.';
 
   @override
   String lookupTryExample(String code) {
@@ -51,9 +47,36 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String lookupOrTry(String code) {
+    return 'oder $code';
+  }
+
+  @override
   String treeHomeTooltip(String name) {
     return 'Zurück zu $name';
   }
+
+  @override
+  String get treeTipsTitle => 'Den Stammbaum bedienen';
+
+  @override
+  String get treeTipsSwipe =>
+      'Mit einem Finger ziehen, um den Ausschnitt zu verschieben';
+
+  @override
+  String get treeTipsZoom =>
+      'Zwei Finger zusammenziehen oder spreizen zum Zoomen';
+
+  @override
+  String get treeTipsTap =>
+      'Eine Person antippen, um sie in die Mitte zu holen';
+
+  @override
+  String get treeTipsLongPress =>
+      'Eine Person gedrückt halten, um ihre Details zu sehen';
+
+  @override
+  String get treeTipsDismiss => 'Verstanden';
 
   @override
   String moreCount(int count) {
@@ -100,23 +123,23 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String shareTitleWithDates(String name, String lifeSpan) {
-    return '$name ($lifeSpan) auf WikiTree';
+  String shareTitleWithDates(
+    String name,
+    String lifeSpan,
+    String app,
+    String link,
+  ) {
+    return 'Stammbaum von $name ($lifeSpan) in $app ansehen: $link';
   }
 
   @override
-  String shareTitle(String name) {
-    return '$name auf WikiTree';
-  }
-
-  @override
-  String shareOpenIn(String app, String link) {
-    return 'In $app öffnen: $link';
+  String shareTitle(String name, String app, String link) {
+    return 'Stammbaum von $name in $app ansehen: $link';
   }
 
   @override
   String shareInstall(String app, String url) {
-    return '$app noch nicht installiert? $url';
+    return '$app noch nicht installiert? Hier holen: $url';
   }
 
   @override

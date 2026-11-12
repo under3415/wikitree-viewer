@@ -4,6 +4,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'app.dart';
 import 'core/crash_reporter.dart';
 import 'core/deep_links.dart';
+import 'data/preferences.dart';
 import 'data/wikitree_api.dart';
 import 'data/wikitree_repository.dart';
 
@@ -25,6 +26,9 @@ Future<void> main() async {
   runApp(
     WikiTreeViewerApp(
       repository: WikiTreeRepository(api: HttpWikiTreeApi()),
+      // Shared preferences: the last family code, and whether the tree hints
+      // have been seen. Nothing about the people in the tree is stored.
+      preferences: DevicePreferences(),
       links: links.keys,
     ),
   );

@@ -30,6 +30,13 @@ void main() {
       'https://www.wikitree.com/wiki/Marić-75': 'Marić-75',
       'Marić-75 - WikiTree': 'Marić-75',
       'Ångström-1': 'Ångström-1',
+      // The link the app itself shares, which people do paste back in.
+      'https://under3415.github.io/wikitree-viewer/open/?id=Clemens-1':
+          'Clemens-1',
+      'https://under3415.github.io/wikitree-viewer/open/?id=Clemens-1&utm=x':
+          'Clemens-1',
+      'https://under3415.github.io/wikitree-viewer/open/Clemens-1': 'Clemens-1',
+      'https://under3415.github.io/wikitree-viewer/open/#Clemens-1': 'Clemens-1',
     };
 
     cases.forEach((input, expected) {
@@ -65,6 +72,11 @@ void main() {
     );
     rejects(
       'https://www.wikitree.com/genealogy/Clemens-1',
+      InvalidKeyReason.noIdFound,
+    );
+    // The app's own page without a code in it.
+    rejects(
+      'https://under3415.github.io/wikitree-viewer/open/',
       InvalidKeyReason.noIdFound,
     );
     rejects('1835-1910', InvalidKeyReason.noIdFound);

@@ -54,6 +54,22 @@ abstract final class AppInfo {
 
   static const String exampleKey = 'Einstein-1';
 
+  /// A second worked example, offered next to [exampleKey] so the suggestion on
+  /// the lookup screen reads as "codes look like this" rather than "this is the
+  /// only person the app knows".
+  static const String secondExampleKey = 'Kennedy-96';
+
+  /// Where the app's own share link points: `https://<host><path>?id=<code>`.
+  ///
+  /// An ordinary https link is the only kind messengers and note apps turn into
+  /// something tappable, so this is what gets shared instead of a custom scheme.
+  /// Android hands it to the app once App Links verification has passed (see
+  /// docs/app-links/README.md). Changing either value means changing the intent
+  /// filter in android/app/src/main/AndroidManifest.xml, the parser in
+  /// lib/data/key_parser.dart and the page in docs/open/index.html.
+  static const String appLinkHost = 'under3415.github.io';
+  static const String appLinkPath = '/wikitree-viewer/open/';
+
   /// Registered for links that open the app: `wikitreeviewer://person/<id>`.
   /// See lib/core/deep_links.dart. Changing it also means changing
   /// android/app/src/main/AndroidManifest.xml and ios/Runner/Info.plist.

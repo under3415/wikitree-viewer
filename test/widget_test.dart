@@ -9,6 +9,7 @@ import 'package:wikitree_viewer/core/constants.dart';
 import 'package:wikitree_viewer/core/deep_links.dart';
 import 'package:wikitree_viewer/core/failures.dart';
 import 'package:wikitree_viewer/data/person.dart';
+import 'package:wikitree_viewer/data/preferences.dart';
 import 'package:wikitree_viewer/data/wikitree_api.dart';
 import 'package:wikitree_viewer/data/wikitree_repository.dart';
 import 'package:wikitree_viewer/ui/screens/person_summary_screen.dart';
@@ -264,8 +265,31 @@ class _PrivateApi implements WikiTreeApi {
   void close() {}
 }
 
-Widget _app() =>
-    WikiTreeViewerApp(repository: WikiTreeRepository(api: _EmptyApi()));
+/// Preferences that live in memory, with the tree hints already seen unless a
+/// test says otherwise, so the existing tests keep seeing a plain tree.
+class _Prefs implements AppPreferences {
+  _Prefs({this.storedCode, this.treeTipsSeen = true});
+
+  String? storedCode;
+  bool treeTipsSeen;
+
+  @override
+  Future<String?> lastCode() async => storedCode;
+
+  @override
+  Future<void> rememberCode(String code) async => storedCode = code;
+
+  @override
+  Future<bool> hasSeenTreeTips() async => treeTipsSeen;
+
+  @override
+  Future<void> markTreeTipsSeen() async => treeTipsSeen = true;
+}
+
+Widget _app({_Prefs? preferences}) => WikiTreeViewerApp(
+  repository: WikiTreeRepository(api: _EmptyApi()),
+  preferences: preferences ?? _Prefs(),
+);
 
 /// What the family-code box currently holds.
 String _fieldText(WidgetTester tester) {
@@ -277,10 +301,12 @@ Future<void> _openTree(
   WidgetTester tester, {
   WikiTreeApi? api,
   Stream<String>? links,
+  _Prefs? preferences,
 }) async {
   await tester.pumpWidget(
     WikiTreeViewerApp(
       repository: WikiTreeRepository(api: api ?? _FamilyApi()),
+      preferences: preferences ?? _Prefs(),
       links: links,
     ),
   );
@@ -298,6 +324,14 @@ void main() {
     expect(find.text('Show family tree'), findsOneWidget);
     expect(find.text('Paste a link'), findsOneWidget);
     expect(find.text('Try Einstein-1'), findsOneWidget);
+    // A second example, so the pair reads as "codes look like this" instead of
+    // "this is the only family the app can open".
+    expect(find.text('or Kennedy-96'), findsOneWidget);
+    // The field used to carry a helper line repeating what the buttons say.
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).decoration?.helperText,
+      isNull,
+    );
   });
 
   testWidgets('explains input that contains no WikiTree ID', (tester) async {
@@ -553,6 +587,7 @@ void main() {
     await tester.pumpWidget(
       WikiTreeViewerApp(
         repository: WikiTreeRepository(api: _FamilyApi()),
+        preferences: _Prefs(),
         links: links.stream,
       ),
     );
@@ -574,6 +609,7 @@ void main() {
     await tester.pumpWidget(
       WikiTreeViewerApp(
         repository: WikiTreeRepository(api: _FamilyApi()),
+        preferences: _Prefs(),
         links: inbox.keys,
       ),
     );
@@ -609,11 +645,75 @@ void main() {
     await tester.tap(find.byKey(const ValueKey<String>('tree-share-copy')));
     await tester.pumpAndSettle();
 
-    expect(copied, contains('Albert Einstein (1879–1955) on WikiTree'));
-    expect(copied, contains('https://www.wikitree.com/wiki/Einstein-1'));
-    expect(copied, contains('wikitreeviewer://person/Einstein-1'));
+    expect(
+      copied,
+      contains("View Albert Einstein's (1879–1955) family tree in"),
+    );
+    // One https link, because that is the only kind the places people paste
+    // into turn into something tappable.
+    expect(copied, contains(DeepLink.forKey('Einstein-1')));
     expect(copied, contains(AppInfo.installUrl));
+    expect(copied, isNot(contains('www.wikitree.com/wiki')));
+    expect(copied, isNot(contains('wikitreeviewer://')));
     expect(find.textContaining('Link copied'), findsOneWidget);
+  });
+
+  testWidgets('the share button stays clear of the system navigation bar', (
+    tester,
+  ) async {
+    // Android draws the tree behind the navigation bar, so the screen has to
+    // keep its bottom controls above the inset instead of 12 pixels above the
+    // window, which is where they used to sit.
+    const navBar = 48.0;
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(800, 600);
+    tester.view.padding = const FakeViewPadding(bottom: navBar);
+    tester.view.viewPadding = const FakeViewPadding(bottom: navBar);
+    addTearDown(tester.view.reset);
+
+    await _openTree(tester);
+
+    final share = tester.getRect(
+      find.byKey(const ValueKey<String>('tree-share')),
+    );
+    expect(share.bottom, 600 - navBar);
+    // Wide open space on the right is where the "more descendants" control
+    // goes, so the row has to reach the edges.
+    expect(share.left, 12);
+  });
+
+  testWidgets('the tree hints explain the gestures on the first tree only', (
+    tester,
+  ) async {
+    final preferences = _Prefs(treeTipsSeen: false);
+    await _openTree(tester, preferences: preferences);
+
+    expect(find.text('Using the tree'), findsOneWidget);
+    expect(find.text('Drag with one finger to move around'), findsOneWidget);
+    expect(find.text('Pinch or spread two fingers to zoom'), findsOneWidget);
+    expect(
+      find.text('Tap a person to make them the middle of the tree'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Press and hold a person for their details'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey<String>('tree-tips-dismiss')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Using the tree'), findsNothing);
+    expect(preferences.treeTipsSeen, isTrue);
+
+    // Away and back in: they have done their job and stay away.
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Show family tree'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(TreeView), findsOneWidget);
+    expect(find.text('Using the tree'), findsNothing);
   });
 
   testWidgets('the clear button empties the code box', (tester) async {
@@ -630,13 +730,50 @@ void main() {
     expect(find.byKey(const ValueKey<String>('lookup-clear')), findsNothing);
   });
 
+  testWidgets('the last family opened is waiting in the box next time', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(preferences: _Prefs(storedCode: 'Kennedy-96')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(_fieldText(tester), 'Kennedy-96');
+    // Ready to go one tap later, with the cursor after the code.
+    expect(find.text('Show family tree'), findsOneWidget);
+  });
+
+  testWidgets('opening a tree remembers the code that worked', (tester) async {
+    final preferences = _Prefs();
+    await _openTree(tester, preferences: preferences);
+
+    expect(preferences.storedCode, 'Einstein-1');
+  });
+
+  testWidgets('a code that did not open keeps the remembered one', (
+    tester,
+  ) async {
+    final preferences = _Prefs(storedCode: 'Kennedy-96');
+    await tester.pumpWidget(_app(preferences: preferences));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'Unknown-9');
+    await tester.tap(find.text('Show family tree'));
+    await tester.pumpAndSettle();
+
+    expect(preferences.storedCode, 'Kennedy-96');
+  });
+
   testWidgets('opens a person whose code has letters outside A-Z', (
     tester,
   ) async {
     // Mileva Marić is Marić-75 on WikiTree, and asking for ASCII only turned
     // tapping her into "that is not a WikiTree ID".
     await tester.pumpWidget(
-      WikiTreeViewerApp(repository: WikiTreeRepository(api: _FamilyApi())),
+      WikiTreeViewerApp(
+        repository: WikiTreeRepository(api: _FamilyApi()),
+        preferences: _Prefs(),
+      ),
     );
     await tester.enterText(find.byType(TextField), 'Marić-75');
     await tester.tap(find.text('Show family tree'));

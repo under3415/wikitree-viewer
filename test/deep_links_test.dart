@@ -19,14 +19,56 @@ const Person _albert = Person(
 
 void main() {
   group('DeepLink', () {
-    test('builds the link it shares', () {
+    test('builds the https link it shares', () {
+      // https, not wikitreeviewer://: messengers and note apps only make https
+      // links tappable, so this is the only shape worth sharing.
       expect(
         DeepLink.forKey('Einstein-1'),
-        'wikitreeviewer://person/Einstein-1',
+        'https://under3415.github.io/wikitree-viewer/open/?id=Einstein-1',
       );
     });
 
-    test('reads the shared app link', () {
+    test('reads back the link it shares', () {
+      final link = Uri.parse(DeepLink.forKey('Einstein-1'));
+
+      expect(link.scheme, 'https');
+      expect(DeepLink.keyFrom(link), 'Einstein-1');
+    });
+
+    test('reads the shared page in the shapes a link can arrive in', () {
+      expect(
+        DeepLink.keyFrom(
+          Uri.parse('https://under3415.github.io/wikitree-viewer/open/Einstein-1'),
+        ),
+        'Einstein-1',
+      );
+      // Some apps keep the query but drop the trailing slash, some paste the
+      // code into the fragment; both are cheap to understand.
+      expect(
+        DeepLink.keyFrom(
+          Uri.parse('https://under3415.github.io/wikitree-viewer/open?id=Einstein-1'),
+        ),
+        'Einstein-1',
+      );
+      expect(
+        DeepLink.keyFrom(
+          Uri.parse('https://under3415.github.io/wikitree-viewer/open#Einstein-1'),
+        ),
+        'Einstein-1',
+      );
+    });
+
+    test('ignores its own page when it carries no code', () {
+      expect(
+        DeepLink.keyFrom(
+          Uri.parse('https://under3415.github.io/wikitree-viewer/open/'),
+        ),
+        isNull,
+      );
+      expect(DeepLink.keyFrom(Uri.parse('https://under3415.github.io/')), isNull);
+    });
+
+    test('still reads the app link it used to share', () {
       expect(
         DeepLink.keyFrom(Uri.parse('wikitreeviewer://person/Einstein-1')),
         'Einstein-1',
@@ -80,31 +122,41 @@ void main() {
       text = englishText(l10n);
     });
 
-    test('carries the profile, the app link and the install page', () {
+    test('carries the app link and the store page, and only one URL', () {
       final message = shareMessage(_albert, l10n: l10n, text: text);
 
-      expect(message, contains('Albert Einstein (1879–1955) on WikiTree'));
-      expect(message, contains('https://www.wikitree.com/wiki/Einstein-1'));
       expect(
         message,
         contains(
-          'Open in ${AppInfo.displayName}: wikitreeviewer://person/Einstein-1',
+          "View Albert Einstein's (1879–1955) family tree in "
+          '${AppInfo.displayName}: ${DeepLink.forKey('Einstein-1')}',
         ),
       );
       expect(message, contains(AppInfo.installUrl));
+      // The WikiTree profile URL used to sit on its own line. Two links in one
+      // message left the reader guessing which one to tap.
+      expect(message, isNot(contains('wikitree.com/wiki')));
+      expect(message, isNot(contains('wikitreeviewer://')));
+    });
+
+    test('puts the link and the store page on their own lines', () {
+      final lines = shareMessage(_albert, l10n: l10n, text: text).split('\n');
+
+      expect(lines, hasLength(3));
+      expect(lines.first, endsWith(DeepLink.forKey('Einstein-1')));
+      expect(lines.last, endsWith(AppInfo.installUrl));
     });
 
     test('leaves the dates out when they are unknown', () {
       const person = Person(id: 9, wikiTreeId: 'Anon-9', firstName: 'Anon');
 
+      final message = shareMessage(person, l10n: l10n, text: text);
+
       expect(
-        shareMessage(person, l10n: l10n, text: text),
-        contains('Anon on WikiTree'),
+        message,
+        contains("View Anon's family tree in ${AppInfo.displayName}:"),
       );
-      expect(
-        shareMessage(person, l10n: l10n, text: text),
-        isNot(contains('()')),
-      );
+      expect(message, isNot(contains('()')));
     });
   });
 

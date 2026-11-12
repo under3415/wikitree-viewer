@@ -8,6 +8,7 @@ import '../../core/constants.dart';
 import '../../core/crash_reporter.dart';
 import '../../core/failures.dart';
 import '../../data/key_parser.dart';
+import '../../data/preferences.dart';
 import '../../data/wikitree_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../format/failure_text.dart';
@@ -17,9 +18,17 @@ import 'family_tree_screen.dart';
 
 /// Where a session starts: type or paste a WikiTree ID, or a profile link.
 class LookupScreen extends StatefulWidget {
-  const LookupScreen({super.key, required this.repository, this.links});
+  const LookupScreen({
+    super.key,
+    required this.repository,
+    required this.preferences,
+    this.links,
+  });
 
   final WikiTreeRepository repository;
+
+  /// What the app remembers between runs.
+  final AppPreferences preferences;
 
   /// WikiTree IDs arriving from outside the app, e.g. somebody shared a family
   /// link. Each one is opened as soon as it arrives.
@@ -42,6 +51,18 @@ class _LookupScreenState extends State<LookupScreen> {
     // This screen stays mounted underneath the tree, so a link that arrives
     // while a tree is open still lands here and opens the tree it points at.
     _links = widget.links?.listen(_openLink);
+    unawaited(_restoreLastCode());
+  }
+
+  /// Puts the family the user opened last back in the box, so the second visit
+  /// is one tap rather than typing the same code again.
+  Future<void> _restoreLastCode() async {
+    final code = await widget.preferences.lastCode();
+    // Never overwrite typing that started while the storage was being read, and
+    // never fight a link that has already put its own code there.
+    if (!mounted || code == null || _input.text.isNotEmpty) return;
+    _input.text = code;
+    _input.selection = TextSelection.collapsed(offset: code.length);
   }
 
   @override
@@ -119,10 +140,19 @@ class _LookupScreenState extends State<LookupScreen> {
 
     final loaded = bundle;
     if (loaded == null) return;
+
+    // Remembered only once WikiTree has answered, so a typo is never the code
+    // that greets the user next time. The canonical id, not the raw input: a
+    // pasted profile link leaves clean code behind.
+    unawaited(widget.preferences.rememberCode(loaded.focus.wikiTreeId));
+
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (context) =>
-            FamilyTreeScreen(repository: widget.repository, bundle: loaded),
+        builder: (context) => FamilyTreeScreen(
+          repository: widget.repository,
+          bundle: loaded,
+          preferences: widget.preferences,
+        ),
       ),
     );
   }
@@ -178,8 +208,6 @@ class _LookupScreenState extends State<LookupScreen> {
                       onTapOutside: (_) => _inputFocus.unfocus(),
                       decoration: InputDecoration(
                         labelText: l10n.lookupLabel,
-                        helperText: l10n.lookupHelper,
-                        helperMaxLines: 2,
                         prefixIcon: const Icon(Icons.person_search_outlined),
                         suffixIcon: value.text.isEmpty
                             ? null
@@ -236,9 +264,25 @@ class _LookupScreenState extends State<LookupScreen> {
                     textAlign: TextAlign.center,
                     style: muted,
                   ),
-                  TextButton(
-                    onPressed: _busy ? null : () => _open(AppInfo.exampleKey),
-                    child: Text(l10n.lookupTryExample(AppInfo.exampleKey)),
+                  // Two suggestions rather than one: one on its own reads like
+                  // the only family the app can open, and the pair also shows
+                  // that the surname is part of the code.
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    children: <Widget>[
+                      TextButton(
+                        onPressed: _busy ? null : () => _open(AppInfo.exampleKey),
+                        child: Text(l10n.lookupTryExample(AppInfo.exampleKey)),
+                      ),
+                      TextButton(
+                        onPressed: _busy
+                            ? null
+                            : () => _open(AppInfo.secondExampleKey),
+                        child: Text(
+                          l10n.lookupOrTry(AppInfo.secondExampleKey),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 24),
                   Text(

@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "io.github.under3415.wikitreeviewer",
+      "sha256_cert_fingerprints": [
+        "D0:D6:D7:2C:EF:81:EC:85:F7:F9:18:53:13:4E:29:99:05:09:1D:3E:36:86:E6:7B:6A:AB:62:86:A9:A9:70:83",
+        "REPLACE_WITH_THE_SHA-256_FROM_PLAY_CONSOLE_APP_SIGNING"
+      ]
+    }
+  }
+]

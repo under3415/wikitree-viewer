@@ -134,12 +134,6 @@ abstract class AppLocalizations {
   /// **'Family code or link'**
   String get lookupLabel;
 
-  /// No description provided for @lookupHelper.
-  ///
-  /// In en, this message translates to:
-  /// **'For example Einstein-1, or paste a wikitree.com/wiki link'**
-  String get lookupHelper;
-
   /// No description provided for @lookupClear.
   ///
   /// In en, this message translates to:
@@ -167,20 +161,62 @@ abstract class AppLocalizations {
   /// No description provided for @lookupExamplePrompt.
   ///
   /// In en, this message translates to:
-  /// **'First time here? Try the example to see how a tree looks.'**
+  /// **'First time here? Try an example to see how a tree looks.'**
   String get lookupExamplePrompt;
 
-  /// Button that opens the example profile.
+  /// Button that opens the first example profile.
   ///
   /// In en, this message translates to:
   /// **'Try {code}'**
   String lookupTryExample(String code);
+
+  /// Second example profile, offered directly after the first one so the pair reads as two suggestions.
+  ///
+  /// In en, this message translates to:
+  /// **'or {code}'**
+  String lookupOrTry(String code);
 
   /// Tooltip on the home button of the tree; jumps back to the person the tree started on.
   ///
   /// In en, this message translates to:
   /// **'Back to {name}'**
   String treeHomeTooltip(String name);
+
+  /// Title of the how-to dialog shown the first time a tree is opened.
+  ///
+  /// In en, this message translates to:
+  /// **'Using the tree'**
+  String get treeTipsTitle;
+
+  /// One line of the first-run tree hints: panning.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag with one finger to move around'**
+  String get treeTipsSwipe;
+
+  /// One line of the first-run tree hints: zooming.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinch or spread two fingers to zoom'**
+  String get treeTipsZoom;
+
+  /// One line of the first-run tree hints: tapping re-centres the tree on that person.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a person to make them the middle of the tree'**
+  String get treeTipsTap;
+
+  /// One line of the first-run tree hints: long-pressing opens the details sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Press and hold a person for their details'**
+  String get treeTipsLongPress;
+
+  /// Button that closes the first-run tree hints.
+  ///
+  /// In en, this message translates to:
+  /// **'Got it'**
+  String get treeTipsDismiss;
 
   /// Label of the buttons that load another generation, where WikiTree knows how many people are waiting.
   ///
@@ -248,28 +284,27 @@ abstract class AppLocalizations {
   /// **'Family tree: {name}'**
   String shareSubject(String name);
 
-  /// First line of a shared message, for somebody with known dates.
+  /// The shared message, for somebody with known dates. It ends in the link so that the link is the last thing a chat app has to recognise.
   ///
   /// In en, this message translates to:
-  /// **'{name} ({lifeSpan}) on WikiTree'**
-  String shareTitleWithDates(String name, String lifeSpan);
+  /// **'View {name}\'s ({lifeSpan}) family tree in {app}: {link}'**
+  String shareTitleWithDates(
+    String name,
+    String lifeSpan,
+    String app,
+    String link,
+  );
 
-  /// First line of a shared message, for somebody whose dates are unknown.
+  /// The shared message, for somebody whose dates are unknown.
   ///
   /// In en, this message translates to:
-  /// **'{name} on WikiTree'**
-  String shareTitle(String name);
+  /// **'View {name}\'s family tree in {app}: {link}'**
+  String shareTitle(String name, String app, String link);
 
-  /// No description provided for @shareOpenIn.
+  /// Second line of a shared message: where to get the app.
   ///
   /// In en, this message translates to:
-  /// **'Open in {app}: {link}'**
-  String shareOpenIn(String app, String link);
-
-  /// No description provided for @shareInstall.
-  ///
-  /// In en, this message translates to:
-  /// **'Don\'t have {app} yet? {url}'**
+  /// **'Don\'t have {app}? Get it here: {url}'**
   String shareInstall(String app, String url);
 
   /// Shown in place of a name when WikiTree releases nothing about a person except their id.

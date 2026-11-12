@@ -9,6 +9,7 @@ import '../../core/crash_reporter.dart';
 import '../../core/failures.dart';
 import '../../core/sharing.dart';
 import '../../data/person.dart';
+import '../../data/preferences.dart';
 import '../../data/wikitree_repository.dart';
 import '../../l10n/app_localizations.dart';
 import '../format/failure_text.dart';
@@ -17,6 +18,7 @@ import '../tree/tree_layout.dart';
 import '../tree/tree_metrics.dart';
 import '../tree/tree_view.dart';
 import '../widgets/status_views.dart';
+import '../widgets/tree_tips.dart';
 import 'person_summary_screen.dart';
 
 /// The family tree, centred on one person.
@@ -29,10 +31,15 @@ class FamilyTreeScreen extends StatefulWidget {
     super.key,
     required this.repository,
     required this.bundle,
+    required this.preferences,
   });
 
   final WikiTreeRepository repository;
   final FocusBundle bundle;
+
+  /// Used for one thing here: whether the hints about the gestures have been
+  /// shown before.
+  final AppPreferences preferences;
 
   @override
   State<FamilyTreeScreen> createState() => _FamilyTreeScreenState();
@@ -70,11 +77,38 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
   bool _busy = false;
   WikiTreeFailure? _failure;
 
+  /// The hints are scheduled once per screen, even though
+  /// [didChangeDependencies] runs again whenever the theme or text scale does.
+  bool _tipsScheduled = false;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _rebuildLayoutIfNeeded();
     unawaited(_checkDescendants());
+    if (!_tipsScheduled) {
+      _tipsScheduled = true;
+      // After this frame: a dialog cannot be opened while the tree is still
+      // being built, and the user should see the tree behind it, not a blank
+      // screen.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        unawaited(_showTipsOnce());
+      });
+    }
+  }
+
+  /// Shows the four gestures the first time a tree is ever opened, then never
+  /// again: they are useful once and in the way after that.
+  Future<void> _showTipsOnce() async {
+    if (!mounted) return;
+    if (await widget.preferences.hasSeenTreeTips()) return;
+    if (!mounted) return;
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) => const TreeTipsDialog(),
+    );
+    await widget.preferences.markTreeTipsSeen();
   }
 
   /// Lays the tree out again only when the person or the text scale changed.
@@ -428,42 +462,61 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
                 child: LinearProgressIndicator(minHeight: 3),
               ),
             // The error banner stays at the top; the "more ancestors" control
-            // lives in the app bar, where it cannot cover a person.
+            // lives in the app bar, where it cannot cover a person. SafeArea
+            // keeps it clear of a cutout or a navigation bar at the side.
             if (failureText != null)
               Positioned(
                 top: 12,
                 left: 12,
                 right: 12,
-                child: ErrorBanner(
-                  message: failureText.message,
-                  hint: failureText.hint,
+                child: SafeArea(
+                  bottom: false,
+                  child: ErrorBanner(
+                    message: failureText.message,
+                    hint: failureText.hint,
+                  ),
                 ),
               ),
-            // Where the zoom buttons used to be. Pinching handles zoom now, so
-            // this corner is free for the thing people actually look for.
+            // The two controls at the bottom share one SafeArea, because the
+            // tree is drawn edge to edge: on Android 15 and later the system
+            // navigation bar is painted over the bottom of the app, and without
+            // this the buttons end up underneath it. The side insets matter in
+            // landscape, where a three-button bar sits at one end of the screen.
             Positioned(
-              left: 12,
-              bottom: 12,
-              child: IconButton.filledTonal(
-                key: const ValueKey<String>('tree-share'),
-                tooltip: l10n.shareTooltip,
-                onPressed: _busy ? null : _share,
-                icon: const Icon(Icons.share_outlined),
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: SafeArea(
+                top: false,
+                // SafeArea takes the larger of this and the system inset, so
+                // the 12 that was here before survives on devices without one.
+                minimum: const EdgeInsets.all(12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: <Widget>[
+                    // Where the zoom buttons used to be. Pinching handles zoom
+                    // now, so this corner is free for the thing people actually
+                    // look for.
+                    IconButton.filledTonal(
+                      key: const ValueKey<String>('tree-share'),
+                      tooltip: l10n.shareTooltip,
+                      onPressed: _busy ? null : _share,
+                      icon: const Icon(Icons.share_outlined),
+                    ),
+                    const Spacer(),
+                    // ...and anything about the bottom at the bottom, on the
+                    // right like its counterpart in the app bar.
+                    if (descendantLabel != null)
+                      _GrowthControl(
+                        key: const ValueKey<String>('tree-more-descendants'),
+                        icon: Icons.expand_more,
+                        label: descendantLabel,
+                        onPressed: () => _loadMore(moreAncestors: false),
+                      ),
+                  ],
+                ),
               ),
             ),
-            // ...and anything about the bottom at the bottom, on the right like
-            // its counterpart above.
-            if (descendantLabel != null)
-              Positioned(
-                right: 12,
-                bottom: 12,
-                child: _GrowthControl(
-                  key: const ValueKey<String>('tree-more-descendants'),
-                  icon: Icons.expand_more,
-                  label: descendantLabel,
-                  onPressed: () => _loadMore(moreAncestors: false),
-                ),
-              ),
           ],
         ),
       ),

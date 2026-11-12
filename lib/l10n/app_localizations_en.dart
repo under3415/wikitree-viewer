@@ -26,10 +26,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lookupLabel => 'Family code or link';
 
   @override
-  String get lookupHelper =>
-      'For example Einstein-1, or paste a wikitree.com/wiki link';
-
-  @override
   String get lookupClear => 'Clear';
 
   @override
@@ -43,7 +39,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get lookupExamplePrompt =>
-      'First time here? Try the example to see how a tree looks.';
+      'First time here? Try an example to see how a tree looks.';
 
   @override
   String lookupTryExample(String code) {
@@ -51,9 +47,32 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String lookupOrTry(String code) {
+    return 'or $code';
+  }
+
+  @override
   String treeHomeTooltip(String name) {
     return 'Back to $name';
   }
+
+  @override
+  String get treeTipsTitle => 'Using the tree';
+
+  @override
+  String get treeTipsSwipe => 'Drag with one finger to move around';
+
+  @override
+  String get treeTipsZoom => 'Pinch or spread two fingers to zoom';
+
+  @override
+  String get treeTipsTap => 'Tap a person to make them the middle of the tree';
+
+  @override
+  String get treeTipsLongPress => 'Press and hold a person for their details';
+
+  @override
+  String get treeTipsDismiss => 'Got it';
 
   @override
   String moreCount(int count) {
@@ -99,23 +118,23 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String shareTitleWithDates(String name, String lifeSpan) {
-    return '$name ($lifeSpan) on WikiTree';
+  String shareTitleWithDates(
+    String name,
+    String lifeSpan,
+    String app,
+    String link,
+  ) {
+    return 'View $name\'s ($lifeSpan) family tree in $app: $link';
   }
 
   @override
-  String shareTitle(String name) {
-    return '$name on WikiTree';
-  }
-
-  @override
-  String shareOpenIn(String app, String link) {
-    return 'Open in $app: $link';
+  String shareTitle(String name, String app, String link) {
+    return 'View $name\'s family tree in $app: $link';
   }
 
   @override
   String shareInstall(String app, String url) {
-    return 'Don\'t have $app yet? $url';
+    return 'Don\'t have $app? Get it here: $url';
   }
 
   @override

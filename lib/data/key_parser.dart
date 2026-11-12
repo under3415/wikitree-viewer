@@ -1,3 +1,4 @@
+import '../core/constants.dart';
 import '../core/failures.dart';
 
 /// A WikiTree ID extracted from whatever the user typed or pasted.
@@ -18,6 +19,8 @@ class ParsedKey {
 ///   * `einstein-1` (the repository retries with a capitalised surname)
 ///   * `https://www.wikitree.com/wiki/Einstein-1`
 ///   * `www.wikitree.com/wiki/Einstein-1`
+///   * `https://under3415.github.io/wikitree-viewer/open/?id=Einstein-1` (the
+///     link this app shares)
 ///   * `Einstein-1 - WikiTree` (an ID inside pasted text)
 ///
 /// Rejected with a helpful message: empty input, free-space pages, other
@@ -115,6 +118,11 @@ abstract final class KeyParser {
     }
 
     final host = uri.host.toLowerCase();
+
+    // The app's own share link, where the code rides in the query instead of
+    // the path: https://under3415.github.io/wikitree-viewer/open/?id=Einstein-1
+    if (host == AppInfo.appLinkHost) return _fromAppLink(uri);
+
     if (!_knownHosts.contains(host) && !host.endsWith('.wikitree.com')) {
       throw const InvalidKeyFailure(InvalidKeyReason.unsupportedHost);
     }
@@ -135,6 +143,31 @@ abstract final class KeyParser {
       throw const InvalidKeyFailure(InvalidKeyReason.malformed);
     }
     return ParsedKey(candidateId, fromUrl: true);
+  }
+
+  /// The code in one of the app's own share links.
+  ///
+  /// `?id=` is how the app writes them, but a chat app that moved the code into
+  /// the fragment, or dropped the query and left it in the path, gets the same
+  /// treatment: the point is that somebody pasting a shared link is never told
+  /// "that isn't a WikiTree profile link".
+  static ParsedKey _fromAppLink(Uri uri) {
+    final id = uri.queryParameters['id'];
+    final candidates = <String>[
+      ?id,
+      if (uri.fragment.isNotEmpty) uri.fragment,
+      ...uri.pathSegments.reversed,
+    ];
+
+    for (final candidate in candidates) {
+      final value = candidate.trim();
+      if (value.toLowerCase().startsWith('space:')) {
+        throw const InvalidKeyFailure(InvalidKeyReason.spaceProfile);
+      }
+      if (idPattern.hasMatch(value)) return ParsedKey(value, fromUrl: true);
+    }
+
+    throw const InvalidKeyFailure(InvalidKeyReason.noIdFound);
   }
 
   /// Trims whitespace, invisible characters, wrapping quotes and trailing

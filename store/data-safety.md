@@ -20,6 +20,12 @@ no location, contacts, camera, microphone or storage permission**, and no
 advertising identifier. Crash reports carry no WikiTree ID, no URL and no family
 data - `CrashReporter` only ever passes a fixed tag such as `tree-focus`.
 
+`shared_preferences` writes exactly two values to the device's own app storage:
+the last family code the user opened (`lastFamilyCode`) and whether the how-to
+hints on the tree have been shown (`treeTipsSeen`). Neither leaves the device, and
+uninstalling the app removes both - which is what the "stays on your device"
+section of the privacy page says.
+
 ## Google Play - App content -> Data safety
 
 **Data collection and security**

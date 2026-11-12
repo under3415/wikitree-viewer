@@ -35,12 +35,26 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="wikitreeviewer"/>
             </intent-filter>
-            <!-- To also take a plain https link (an Android App Link), host
-                 https://<your-domain>/.well-known/assetlinks.json listing this
-                 app's package name and SHA-256 signing certificate, then add an
-                 autoVerify intent filter here with the https scheme, that host
-                 and android:pathPrefix="/person". Until a domain is available,
-                 the scheme above is the working path. See README.md. -->
+            <!-- What actually gets shared: an ordinary https link, because that
+                 is the only kind messengers and note apps make tappable.
+
+                     https://under3415.github.io/wikitree-viewer/open/?id=Einstein-1
+
+                 android:autoVerify makes Android hand those links straight to
+                 this app once https://under3415.github.io/.well-known/assetlinks.json
+                 lists this package with the signing certificate's SHA-256 (see
+                 docs/app-links/README.md). Unverified links still work, but the
+                 system may ask which app should open them. The host and path
+                 here must match DeepLink.webHost and DeepLink.webPath. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data
+                    android:scheme="https"
+                    android:host="under3415.github.io"
+                    android:pathPrefix="/wikitree-viewer/open"/>
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

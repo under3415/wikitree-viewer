@@ -9,19 +9,28 @@
   "loadingFamily": "Loading family…",
 
   "lookupLabel": "Family code or link",
-  "lookupHelper": "For example Einstein-1, or paste a wikitree.com/wiki link",
   "lookupClear": "Clear",
   "lookupSubmit": "Show family tree",
   "lookupBusy": "Looking up…",
   "lookupPaste": "Paste a link",
-  "lookupExamplePrompt": "First time here? Try the example to see how a tree looks.",
+  "lookupExamplePrompt": "First time here? Try an example to see how a tree looks.",
   "lookupTryExample": "Try {code}",
   "@lookupTryExample": {
-    "description": "Button that opens the example profile.",
+    "description": "Button that opens the first example profile.",
     "placeholders": {
       "code": {
         "type": "String",
         "example": "Einstein-1"
+      }
+    }
+  },
+  "lookupOrTry": "or {code}",
+  "@lookupOrTry": {
+    "description": "Second example profile, offered directly after the first one so the pair reads as two suggestions.",
+    "placeholders": {
+      "code": {
+        "type": "String",
+        "example": "Kennedy-96"
       }
     }
   },
@@ -35,6 +44,30 @@
         "example": "Albert Einstein"
       }
     }
+  },
+  "treeTipsTitle": "Using the tree",
+  "@treeTipsTitle": {
+    "description": "Title of the how-to dialog shown the first time a tree is opened."
+  },
+  "treeTipsSwipe": "Drag with one finger to move around",
+  "@treeTipsSwipe": {
+    "description": "One line of the first-run tree hints: panning."
+  },
+  "treeTipsZoom": "Pinch or spread two fingers to zoom",
+  "@treeTipsZoom": {
+    "description": "One line of the first-run tree hints: zooming."
+  },
+  "treeTipsTap": "Tap a person to make them the middle of the tree",
+  "@treeTipsTap": {
+    "description": "One line of the first-run tree hints: tapping re-centres the tree on that person."
+  },
+  "treeTipsLongPress": "Press and hold a person for their details",
+  "@treeTipsLongPress": {
+    "description": "One line of the first-run tree hints: long-pressing opens the details sheet."
+  },
+  "treeTipsDismiss": "Got it",
+  "@treeTipsDismiss": {
+    "description": "Button that closes the first-run tree hints."
   },
   "moreCount": "{count, plural, =1{1 more} other{{count} more}}",
   "@moreCount": {
@@ -67,9 +100,9 @@
     }
   },
 
-  "shareTitleWithDates": "{name} ({lifeSpan}) on WikiTree",
+  "shareTitleWithDates": "View {name}'s ({lifeSpan}) family tree in {app}: {link}",
   "@shareTitleWithDates": {
-    "description": "First line of a shared message, for somebody with known dates.",
+    "description": "The shared message, for somebody with known dates. It ends in the link so that the link is the last thing a chat app has to recognise.",
     "placeholders": {
       "name": {
         "type": "String"
@@ -77,21 +110,7 @@
       "lifeSpan": {
         "type": "String",
         "example": "1879–1955"
-      }
-    }
-  },
-  "shareTitle": "{name} on WikiTree",
-  "@shareTitle": {
-    "description": "First line of a shared message, for somebody whose dates are unknown.",
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "shareOpenIn": "Open in {app}: {link}",
-  "@shareOpenIn": {
-    "placeholders": {
+      },
       "app": {
         "type": "String"
       },
@@ -100,8 +119,24 @@
       }
     }
   },
-  "shareInstall": "Don't have {app} yet? {url}",
+  "shareTitle": "View {name}'s family tree in {app}: {link}",
+  "@shareTitle": {
+    "description": "The shared message, for somebody whose dates are unknown.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "app": {
+        "type": "String"
+      },
+      "link": {
+        "type": "String"
+      }
+    }
+  },
+  "shareInstall": "Don't have {app}? Get it here: {url}",
   "@shareInstall": {
+    "description": "Second line of a shared message: where to get the app.",
     "placeholders": {
       "app": {
         "type": "String"

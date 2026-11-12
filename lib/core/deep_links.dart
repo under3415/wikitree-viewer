@@ -9,16 +9,23 @@ import 'failures.dart';
 
 /// The links that open this app, and what they mean.
 ///
-/// Two shapes are understood:
+/// Three shapes are understood:
 ///
-/// * `wikitreeviewer://person/Einstein-1` - registered in AndroidManifest.xml
-///   and Info.plist, so it needs no server of our own.
+/// * `https://under3415.github.io/wikitree-viewer/open/?id=Einstein-1` - the
+///   link the app shares. It is an ordinary https link, so every chat app and
+///   note app turns it into something tappable, and Android hands it straight
+///   to the app when App Links verification has passed (the intent filter in
+///   AndroidManifest.xml plus assetlinks.json on that host). Without the app
+///   installed the same link lands on a small page that explains what to do
+///   (docs/open/index.html).
+/// * `wikitreeviewer://person/Einstein-1` - registered with the platform too,
+///   so it needs no server, but only apps that linkify custom schemes make it
+///   tappable, which is why it is no longer what gets shared.
 /// * `https://www.wikitree.com/wiki/Einstein-1` - the profile link itself. The
 ///   app takes it when the system or a browser hands it over.
 ///
-/// A verified `https://` link on our own domain (an Android App Link or an iOS
-/// Universal Link) additionally needs `assetlinks.json` and an
-/// `apple-app-site-association` file served from that domain - see README.md.
+/// A verified `https://` link additionally needs `assetlinks.json` (Android)
+/// and `apple-app-site-association` (iOS) served from [webHost] - see README.md.
 abstract final class DeepLink {
   /// Shared with the platform registration, so changing it means changing
   /// AndroidManifest.xml *and* Info.plist.
@@ -26,9 +33,20 @@ abstract final class DeepLink {
 
   static const String personHost = 'person';
 
-  /// The link to share. It opens the app directly when it is installed.
-  static String forKey(String wikiTreeId) =>
-      '$scheme://$personHost/$wikiTreeId';
+  /// Host and path of the shared link, as compiled into the app.
+  static const String webHost = AppInfo.appLinkHost;
+  static const String webPath = AppInfo.appLinkPath;
+
+  /// The link to share.
+  ///
+  /// Deliberately https rather than [scheme]: only https links are linkified by
+  /// the places people paste them into (messengers, note apps, forums), and a
+  /// verified App Link opens the app just as directly as a custom scheme does.
+  static String forKey(String wikiTreeId) => Uri.https(
+    webHost,
+    webPath,
+    <String, String>{'id': wikiTreeId},
+  ).toString();
 
   /// The WikiTree ID inside [uri], or null when the link is not ours.
   static String? keyFrom(Uri uri) {
@@ -49,7 +67,8 @@ abstract final class DeepLink {
     }
 
     if (uri.scheme == 'https' || uri.scheme == 'http') {
-      // KeyParser already decides which hosts are WikiTree and which are not.
+      // KeyParser knows which hosts are WikiTree, which pages are free-space
+      // pages, and that our own share link carries its code in ?id=.
       return _asKey(uri.toString());
     }
 

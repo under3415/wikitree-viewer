@@ -1,4 +1,7 @@
 # WikiTree Viewer
+TLDR:
+./tool/build.ps1 N
+
 
 [![CI](https://github.com/under3415/wikitree-viewer/actions/workflows/ci.yml/badge.svg)](https://github.com/under3415/wikitree-viewer/actions/workflows/ci.yml)
 
@@ -12,9 +15,10 @@ WikiTree API and remains subject to WikiTree's terms.
 
 ## Status
 
-Early development. The data layer, lookup flow, layout engine and the interactive
-tree (pan, zoom, tap to re-centre) are in place and tested; accessibility
-settings and the details sheet are next.
+Shipped on the Play Store and in daily use. The data layer, lookup flow, layout
+engine, the interactive tree (pan, zoom, tap to re-centre, long-press for
+details), photos, on-demand generations, deep links and the five languages are all
+in place and tested.
 
 | Area | State |
 | --- | --- |
@@ -25,8 +29,12 @@ settings and the details sheet are next.
 | Tree layout engine (generations, ordering, edges) | done |
 | Tree view widget, pan/zoom, re-centre on tap | done |
 | Photos in the tree, on-demand generations | done |
-| Accessibility settings, onboarding, details sheet | next |
-| Release hardening (signing, icons, store listings) | planned |
+| Details sheet (long-press) | done |
+| First-run hints on the tree, once per install | done |
+| Remembers the last family code (shared preferences) | done |
+| Deep links (Android App Link + `wikitreeviewer://`) | done |
+| Release hardening (signing, icons, store listings) | done |
+| VoiceOver/TalkBack walk-through, iOS release | next |
 
 ## Using the tree
 
@@ -42,6 +50,26 @@ settings and the details sheet are next.
 - **Share** (bottom left) sends this family to somebody else - see below.
 - Each box shows the person's WikiTree 75-pixel thumbnail, or their initials
   when there is no photo.
+
+### The first time: hints, and the last family
+
+The first tree a user opens carries a dialog (`TreeTipsDialog`, in
+`lib/ui/widgets/tree_tips.dart`) with one line and one icon per gesture: drag to
+move around, pinch or spread to zoom, tap a person to re-centre, press and hold
+for their details. It is shown once - dismissing it writes `treeTipsSeen` to
+shared preferences - and never again, because a hint that keeps reappearing is a
+nuisance rather than help.
+
+The lookup box also comes back filled with the last family code that actually
+opened (`lastFamilyCode`), so the second visit is one tap. Only a successful
+lookup is remembered, and the canonical WikiTree ID is stored rather than what
+was typed, so a pasted profile link leaves `Einstein-1` behind, and a typo never
+greets the user next time.
+
+Both live behind `AppPreferences` (`lib/data/preferences.dart`): an interface,
+`DevicePreferences` on top of `shared_preferences`, and an in-memory fake in the
+widget tests. Those two values are the only things written to disk - nothing
+about the people in a tree - which is what the privacy policy promises.
 
 ### Typing a family code
 
@@ -70,41 +98,43 @@ The share button offers two things, because they suit different people:
   Facebook, anything installed.
 * **Copy the link** - the same text on the clipboard.
 
-The shared text carries the person's name and dates, the WikiTree profile link
-(so the information stays attributed and is readable without the app), an app
-link that opens the tree directly, and a link to the store page for whoever does
-not have the app yet:
+The shared text carries the person's name and dates, one https link that opens
+the tree in the app, and the store page for whoever does not have the app yet:
 
 ```
-Albert Einstein (1879–1955) on WikiTree
-https://www.wikitree.com/wiki/Einstein-1
+View Albert Einstein's (1879–1955) family tree in WikiTree Viewer: https://under3415.github.io/wikitree-viewer/open/?id=Einstein-1
 
-Open in WikiTree Viewer: wikitreeviewer://person/Einstein-1
-Don't have WikiTree Viewer yet? https://play.google.com/store/apps/…
+Don't have WikiTree Viewer? Get it here: https://play.google.com/store/apps/…
 ```
 
-The `wikitreeviewer://` link works on **both Android and iOS** today: the scheme
-is registered in `AndroidManifest.xml` and in `Runner/Info.plist`, and
-`app_links` hands it to the app, which opens the tree. It also accepts a profile
-link (`https://www.wikitree.com/wiki/Einstein-1`) if the system offers one.
+The link is deliberately `https://` rather than `wikitreeviewer://`: Viber,
+OneNote, mail clients and forums only turn http(s) URLs into something tappable,
+so a custom scheme arrives as dead text. The scheme is still registered and still
+understood - `DeepLink.keyFrom` takes `wikitreeviewer://person/Einstein-1` and a
+plain `https://www.wikitree.com/wiki/Einstein-1` as well - it is simply no longer
+what gets shared.
 
-What is *not* set up yet is a plain `https://` link on a domain of our own (an
-Android **App Link** / iOS **Universal Link**), which is what makes a link
-clickable inside other apps and browsers and opens the app instead of a website.
-That needs a domain and two tiny files served from it:
+An https link reaches the app through an **Android App Link**: the intent filter
+in `AndroidManifest.xml` (`android:autoVerify="true"`, host `under3415.github.io`,
+`pathPrefix="/wikitree-viewer/open"`) together with
+`https://under3415.github.io/.well-known/assetlinks.json`, which lists the package
+name `io.github.under3415.wikitreeviewer` and the signing certificates' SHA-256
+fingerprints. Without the app installed, the same link shows the landing page in
+`docs/open/index.html`, which carries the family code and an "Open in the app"
+button, so a shared link is never a dead end.
 
-* `https://<domain>/.well-known/assetlinks.json` listing the package name
-  `io.github.under3415.wikitreeviewer` and the SHA-256 signing certificate
-  (the same one registered with Firebase). Then add an `autoVerify` intent
-  filter for `https` + that host + `pathPrefix="/person"` - the manifest has a
-  comment where it goes.
-* `https://<domain>/.well-known/apple-app-site-association` with the Apple Team
-  ID and bundle ID, plus the `com.apple.developer.associated-domains`
-  entitlement (`applinks:<domain>`) on the iOS target.
+Both of those live outside the app: the landing page is published by GitHub Pages
+from `docs/` in this repository, and `assetlinks.json` has to sit at the *host*
+root, which for a project site means a small `under3415.github.io` repository.
+The exact steps - including where to copy Play App Signing's fingerprint from,
+since Play re-signs the app with a key of its own - are in
+`docs/app-links/README.md`; the file there already holds the upload key's
+fingerprint.
 
-GitHub Pages can host both files if the project is public, which avoids paying
-for anything. Until that exists, the scheme link is the working path and the
-WikiTree link is the fallback every reader can open.
+iOS needs the matching piece when that build is made:
+`apple-app-site-association` at the same host plus the
+`com.apple.developer.associated-domains` entitlement
+(`applinks:under3415.github.io`).
 
 ### Going further back or forward
 
@@ -164,35 +194,87 @@ flutter test
 ## Release builds
 
 Store builds are obfuscated, with the Dart symbols split out so a crash can still be
-read:
+read. `tool/build.ps1` does the whole release for a version you name:
 
 ```powershell
-flutter build appbundle --release --obfuscate --split-debug-info=build/symbols
-flutter build apk --release --obfuscate --split-debug-info=build/symbols --split-per-abi
+./tool/build.ps1 -Version 3                      # version 1.0.3, versionCode 3
+./tool/build.ps1 -Version 3 -DryRun              # show the plan, change nothing
 ```
 
-`build/symbols/` then holds `app.android-arm.symbols`, `-arm64.symbols` and
+`-Version` is one number: it becomes the last part of the version and the versionCode
+at the same time, so `3` on a 1.0.x project means Flutter's `--build-name=1.0.3
+--build-number=3`. The major and minor parts come from `pubspec.yaml`, and a number
+that is not above the current versionCode is refused, because Play would reject the
+upload.
+
+It checks that the upload key is configured, runs `flutter pub upgrade
+--major-versions`, builds the release App Bundle, keeps the symbol map of that exact
+build, uploads those symbols to Crashlytics, records the version in `pubspec.yaml`,
+then commits everything as `Release <version>` and pushes it to origin. Nothing else
+is produced: Play takes the `.aab`, and there is no APK to keep in sync.
+
+Two things worth knowing about that commit:
+
+* it stages the whole working tree (`git add --all`), so any other work in progress
+  is recorded with the release - start from a clean tree when that matters;
+* it runs after the build and the upload, so a failed build leaves the repository
+  untouched and what is committed is exactly the tree the bundle was built from.
+  `-NoPush` commits locally without pushing (no network, no credentials), and
+  `-DryRun` prints every command without running any of it.
+
+The Crashlytics app id comes from `firebase.json`, so it cannot drift from the
+configuration the app is compiled with; `-AppId` overrides it for a different Firebase
+app. The same thing by hand:
+
+```powershell
+flutter build appbundle --release --build-name=1.0.3 --build-number=3 --obfuscate --split-debug-info=build/symbols/1.0.3+3
+firebase crashlytics:symbols:upload --app=1:810951891372:android:c0e8fd3f0704b47cee8209 build/symbols/1.0.3+3
+```
+
+`build/symbols/<version>/` then holds `app.android-arm.symbols`, `-arm64.symbols` and
 `-x64.symbols` (about 3 MB each). They are the only way back from an obfuscated stack
 trace, they are not in version control, and `flutter clean` deletes them - copy them
-somewhere durable for every version you ship. One set covers both artifacts: building
-the AAB and the per-ABI APKs from the same commit produced byte-identical symbol
-files, because the renaming is deterministic.
+somewhere durable for every version you ship.
 
-Uploading them so Crashlytics reports arrive readable:
+Why the script compiles into a throwaway folder first: Flutter only writes a symbol
+map when it actually compiles Dart, and its build cache skips that when nothing
+changed, which left the version folder empty on a rebuild. The `--split-debug-info`
+path is part of the build fingerprint, so a fresh path per run forces a fresh compile,
+and the maps are moved into `build/symbols/<version>/` afterwards.
 
-```powershell
-firebase crashlytics:symbols:upload --app=1:810951891372:android:c0e8fd3f0704b47cee8209 build/symbols
+Symbols and Crashlytics:
+* The Java/Kotlin mapping file is uploaded by the Crashlytics Gradle plugin during the
+  build, so those frames arrive readable with no extra step.
+* The Dart maps *are* uploadable: `firebase crashlytics:symbols:upload` runs Breakpad's
+  `dump_syms` over them, and the `.symbols` files Flutter writes for Android are
+  unstripped ELF libraries, which is exactly what it wants. The upload names them after
+  the app id, so the id has to be this project's
+  (`1:810951891372:android:c0e8fd3f0704b47cee8209`); an id from another Firebase project
+  uploads symbols that will never be matched to a crash. Symbols are matched by the
+  library's build id, so re-running the upload for the same build is harmless.
+* For a trace that was already pasted out of the console, `flutter symbolize` works on
+  the same files:
+  `flutter symbolize -i stack.txt -d build/symbols/1.0.3+3/app.android-arm64.symbols`
+  (pick the ABI of the device: `arm64` for almost every phone).
+
+Toolchain: AGP 9.5.1, Gradle 9.9.1 and Kotlin 2.4.21 (`android/settings.gradle.kts`,
+`android/gradle/wrapper/gradle-wrapper.properties`). Flutter only validates the
+minimums it knows (Gradle 9.5.0 / AGP 9.4 alongside it), so newer stable releases are
+fine; if a future Flutter SDK starts refusing them, `-IgnoreToolchainCheck` passes
+`--android-skip-build-dependency-validation` and lets the build run.
+
+Release builds are signed with the upload key in `~/keys/wikitree-viewer-upload.jks`
+(alias `upload`), read from `android/key.properties`. Both the keystore and that
+properties file are gitignored: neither can be committed by accident, and a fresh
+clone without them still builds (release falls back to the debug key). Keep the
+`.jks` and its password somewhere safe outside this folder.
+
+Certificate of the upload key, the same one to register with Firebase:
+
 ```
-
-The Crashlytics Gradle plugin already uploads the Java/Kotlin mapping file by itself;
-the Dart symbols are not its business. `flutter symbolize -i stack.txt -d
-build/symbols/app.android-arm64.symbols` does the same by hand for a trace pasted out
-of the console.
-
-Release builds are signed with the **debug** certificate for now
-(`android/app/build.gradle.kts`), which keeps `flutter run --release` working and
-matches the SHA-1 already registered with Firebase. Play will reject them until the
-upload keystore is wired in - see *Firebase / crash reporting*.
+SHA-1   F2:5A:B8:97:5E:C8:59:16:62:5D:A5:E0:77:D5:14:69:B3:48:86:6B
+SHA-256 D0:D6:D7:2C:EF:81:EC:85:F7:F9:18:53:13:4E:29:99:05:09:1D:3E:36:86:E6:7B:6A:AB:62:86:A9:A9:70:83
+```
 
 Flutter also prints "The generated ELF library contains unobfuscated DWARF debugging
 information" on these builds. That is native debug information, kept so native frames
@@ -255,11 +337,14 @@ name plus the debug SHA-1, and its service allowlist includes
 `firebasecrashlytics.googleapis.com` and `firebaseinstallations.googleapis.com`
 (the Crashlytics API is enabled on the project).
 
-**Still to do before a release build:** create the upload keystore, then add its
-SHA-1 both to the Firebase Android app and to the API key's allowed applications
-(`gcloud services api-keys update`). If Play App Signing is used, add Google's
-app-signing SHA-1 as well. Until then, release builds signed with a different key
-will simply have no crash reporting - the app itself is unaffected.
+**Outstanding:** the upload key (`F2:5A:B8:97:…:86:6B`, see *Release builds*) is not
+registered yet, so release builds installed outside Play - and Play installs once
+App Signing is enrolled - will send no crash reports. Add its SHA-1 to the Firebase
+Android app (Project settings → Your apps → Add fingerprint) and to the API key's
+allowed applications, then repeat with Google's app-signing SHA-1 from Play Console →
+*App integrity* after the first upload. Copying a fingerprint is instant; only the
+API key change needs a minute under *Google Cloud console → APIs & Services →
+Credentials → the Android key → Edit → Restrict usage*.
 
 **iOS** is not registered yet. Run
 `flutterfire configure --project=wikitree-viewer --platforms=ios` before the

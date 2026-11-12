@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Open in WikiTree Viewer</title>
+<meta name="description" content="Open a family tree in WikiTree Viewer, an unofficial read-only viewer for family trees published on WikiTree.">
+<!--
+  Where a shared link lands when the app is not installed.
+
+  The app shares https://under3415.github.io/wikitree-viewer/open/?id=Einstein-1
+  (see lib/core/deep_links.dart). With App Links verified, Android hands that
+  URL to the app and this page is never shown; without the app - or without
+  verification - the browser loads it and this page explains what to do.
+
+  It has to keep living at exactly that path: the host and path are compiled
+  into the app (DeepLink.webHost, DeepLink.webPath) and into the intent filter
+  in android/app/src/main/AndroidManifest.xml.
+-->
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0 auto; max-width: 34rem; padding: 2rem 1.25rem 4rem;
+    font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: #1b1b1b; background: #fbfdf8;
+  }
+  h1 { font-size: 1.5rem; margin: 0 0 .75rem; }
+  .lede { color: #3d4a3c; margin: 0 0 1.5rem; }
+  .code {
+    font: 700 1.5rem/1.3 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    background: #eef3ea; border: 1px solid #d8e2d4; border-radius: 12px;
+    padding: .85rem 1rem; margin: 0 0 .5rem; word-break: break-all;
+    user-select: all;
+  }
+  .actions { display: grid; gap: .6rem; margin: 1.25rem 0 2rem; }
+  a.button, button.button {
+    display: block; width: 100%; box-sizing: border-box; text-align: center;
+    font: inherit; font-weight: 600; text-decoration: none; cursor: pointer;
+    padding: .85rem 1rem; border-radius: 12px; border: 1px solid #2f7d32;
+  }
+  a.primary { background: #2f7d32; color: #fff; }
+  a.ghost, button.ghost { background: transparent; color: #2f7d32; }
+  .status { min-height: 1.4rem; font-size: .9rem; color: #5a6b5a; margin: .25rem 0 0; }
+  ol { padding-left: 1.15rem; color: #3d4a3c; }
+  li { margin: .35rem 0; }
+  footer { margin-top: 3rem; border-top: 1px solid #d8e2d4; padding-top: 1rem;
+           color: #5a6b5a; font-size: .9rem; }
+  a { color: #2f7d32; }
+  [hidden] { display: none !important; }
+  @media (prefers-color-scheme: dark) {
+    body { color: #e6ece4; background: #131712; }
+    .lede, ol { color: #c3ccc0; }
+    .code { background: #232a21; border-color: #2c352a; }
+    footer { border-color: #2c352a; }
+    a, a.ghost, button.ghost { color: #8fd694; }
+    a.primary { background: #2f7d32; color: #fff; border-color: #2f7d32; }
+  }
+</style>
+</head>
+<body>
+
+<h1 data-i18n="title">Open in WikiTree Viewer</h1>
+<p class="lede" id="lede" data-i18n="lede">The link you followed opens a family tree in the WikiTree Viewer app.</p>
+
+<p class="code" id="code" hidden></p>
+
+<div class="actions">
+  <a class="button primary" id="open" data-i18n="open" hidden>Open in the app</a>
+  <button class="button ghost" id="copy" type="button" data-i18n="copy" hidden>Copy the code</button>
+  <a class="button ghost" id="install" data-i18n="install"
+     href="https://play.google.com/store/apps/details?id=io.github.under3415.wikitreeviewer">Get it on Google Play</a>
+</div>
+<p class="status" id="status" role="status" aria-live="polite"></p>
+
+<ol id="steps">
+  <li data-i18n="step1">If the app is already installed, Android usually opens it before this page appears.</li>
+  <li data-i18n="step2">If nothing happened, tap “Open in the app”.</li>
+  <li data-i18n="step3">Without the app: install it, then paste the code above into the box on the start screen.</li>
+</ol>
+
+<footer data-i18n="footer">Unofficial viewer. Family data comes from WikiTree.com.</footer>
+
+
+<script>
+(function () {
+  'use strict';
+
+  var PACKAGE = 'io.github.under3415.wikitreeviewer';
+  var PLAY = 'https://play.google.com/store/apps/details?id=' + PACKAGE;
+
+  // The app speaks five languages; the page it lands on should too.
+  var TEXT = {
+    en: {
+      title: 'Open in WikiTree Viewer',
+      lede: 'The link you followed opens this family tree in the WikiTree Viewer app.',
+      open: 'Open in the app',
+      copy: 'Copy the code',
+      copied: 'Code copied.',
+      install: 'Get it on Google Play',
+      step1: 'If the app is already installed, Android usually opens it before this page appears.',
+      step2: 'If nothing happened, tap “Open in the app”.',
+      step3: 'Without the app: install it, then paste the code above into the box on the start screen.',
+      none: 'This page opens a family tree in the WikiTree Viewer app, but the link did not carry a family code. Open the app and enter one there.',
+      footer: 'Unofficial viewer. Family data comes from WikiTree.com.'
+    },
+    de: {
+      title: 'In WikiTree Viewer öffnen',
+      lede: 'Der Link, dem Sie gefolgt sind, öffnet diesen Stammbaum in der App WikiTree Viewer.',
+      open: 'In der App öffnen',
+      copy: 'Code kopieren',
+      copied: 'Code kopiert.',
+      install: 'Bei Google Play holen',
+      step1: 'Ist die App schon installiert, öffnet Android sie meist, bevor diese Seite erscheint.',
+      step2: 'Passiert nichts, tippen Sie auf „In der App öffnen“.',
+      step3: 'Ohne App: installieren Sie sie und fügen Sie den Code oben auf dem Startbildschirm ein.',
+      none: 'Diese Seite öffnet einen Stammbaum in der App WikiTree Viewer, aber im Link war kein Familiencode. Starten Sie die App und geben Sie dort einen ein.',
+      footer: 'Inoffizieller Betrachter. Die Familiendaten stammen von WikiTree.com.'
+    },
+    es: {
+      title: 'Abrir en WikiTree Viewer',
+      lede: 'El enlace que has seguido abre este árbol familiar en la app WikiTree Viewer.',
+      open: 'Abrir en la app',
+      copy: 'Copiar el código',
+      copied: 'Código copiado.',
+      install: 'Consíguela en Google Play',
+      step1: 'Si la app ya está instalada, Android suele abrirla antes de que veas esta página.',
+      step2: 'Si no pasa nada, toca «Abrir en la app».',
+      step3: 'Sin la app: instálala y pega el código de arriba en la pantalla inicial.',
+      none: 'Esta página abre un árbol en la app WikiTree Viewer, pero el enlace no traía ningún código familiar. Abre la app e introduce uno allí.',
+      footer: 'Visor no oficial. Los datos familiares provienen de WikiTree.com.'
+    },
+    pt: {
+      title: 'Abrir no WikiTree Viewer',
+      lede: 'O link que você seguiu abre esta árvore genealógica no app WikiTree Viewer.',
+      open: 'Abrir no app',
+      copy: 'Copiar o código',
+      copied: 'Código copiado.',
+      install: 'Obtenha no Google Play',
+      step1: 'Se o app já está instalado, o Android costuma abri-lo antes de você ver esta página.',
+      step2: 'Se nada acontecer, toque em “Abrir no app”.',
+      step3: 'Sem o app: instale-o e cole o código acima na tela inicial.',
+      none: 'Esta página abre uma árvore no app WikiTree Viewer, mas o link não trazia nenhum código de família. Abra o app e digite um lá.',
+      footer: 'Visualizador não oficial. Os dados de família vêm do WikiTree.com.'
+    },
+    fr: {
+      title: 'Ouvrir dans WikiTree Viewer',
+      lede: "Le lien que vous avez suivi ouvre cet arbre généalogique dans l'application WikiTree Viewer.",
+      open: "Ouvrir dans l'application",
+      copy: 'Copier le code',
+      copied: 'Code copié.',
+      install: 'Obtenir sur Google Play',
+      step1: "Si l'application est déjà installée, Android l'ouvre généralement avant l'affichage de cette page.",
+      step2: "Si rien ne se passe, appuyez sur « Ouvrir dans l'application ».",
+      step3: "Sans l'application : installez-la, puis collez le code ci-dessus dans l'écran d'accueil.",
+      none: "Cette page ouvre un arbre dans l'application WikiTree Viewer, mais le lien ne contenait pas de code familial. Ouvrez l'application et saisissez-en un.",
+      footer: 'Visionneuse non officielle. Les données familiales viennent de WikiTree.com.'
+    }
+  };
+
+  // WikiTree IDs look like Einstein-1 or O'Brien-1234: a surname and a number.
+  var ID = /^[\p{L}\p{M}\p{N}'’. _-]+-[0-9]+$/u;
+
+  // The code travels in ?id=, but a fragment or a trailing path segment is
+  // accepted too, because chat apps rearrange links on the way.
+  function keyFrom(location) {
+    var pieces = [];
+
+    [location.search, location.hash, location.pathname].forEach(function (raw) {
+      if (!raw) return;
+      var value = raw;
+      try {
+        value = decodeURIComponent(raw);
+      } catch (error) {
+        // Leave a malformed escape alone; the pattern check rejects it.
+      }
+      pieces.push(value);
+      value.split(/[/?#&=]/).forEach(function (part) {
+        if (part) pieces.push(part);
+      });
+    });
+
+    for (var i = 0; i < pieces.length; i++) {
+      var candidate = pieces[i].trim();
+      if (ID.test(candidate)) return candidate;
+    }
+    return null;
+  }
+
+  function language() {
+    var wanted = navigator.languages && navigator.languages.length
+      ? navigator.languages
+      : [navigator.language || 'en'];
+    for (var i = 0; i < wanted.length; i++) {
+      var tag = String(wanted[i]).toLowerCase().split('-')[0];
+      if (TEXT[tag]) return tag;
+    }
+    return 'en';
+  }
+
+  function launch(code) {
+    if (/Android/i.test(navigator.userAgent)) {
+      // intent:// opens the app when it is installed and falls back to the
+      // store when it is not, which a custom scheme alone cannot do.
+      window.location.href = 'intent://person/' + encodeURIComponent(code) +
+        '#Intent;scheme=wikitreeviewer;package=' + PACKAGE +
+        ';S.browser_fallback_url=' + encodeURIComponent(PLAY) + ';end';
+    } else {
+      window.location.href = 'wikitreeviewer://person/' + encodeURIComponent(code);
+    }
+  }
+
+  var code = keyFrom(window.location);
+  var tag = language();
+  var text = TEXT[tag];
+
+  document.documentElement.lang = tag;
+  Array.prototype.forEach.call(document.querySelectorAll('[data-i18n]'), function (node) {
+    var value = text[node.getAttribute('data-i18n')];
+    if (value) node.textContent = value;
+  });
+
+  var codeLine = document.getElementById('code');
+  var openButton = document.getElementById('open');
+  var copyButton = document.getElementById('copy');
+  var status = document.getElementById('status');
+
+  if (!code) {
+    document.getElementById('lede').textContent = text.none;
+    return;
+  }
+
+  codeLine.textContent = code;
+  codeLine.hidden = false;
+  openButton.hidden = false;
+  copyButton.hidden = false;
+
+  openButton.addEventListener('click', function (event) {
+    event.preventDefault();
+    launch(code);
+  });
+
+  copyButton.addEventListener('click', function () {
+    if (!navigator.clipboard || !navigator.clipboard.writeText) return;
+    navigator.clipboard.writeText(code).then(function () {
+      status.textContent = text.copied;
+    }, function () {
+      // Clipboard access can be refused; the code stays on screen and is
+      // selectable by hand.
+    });
+  });
+})();
+</script>
+</body>
+</html>
+

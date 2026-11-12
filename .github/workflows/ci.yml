@@ -21,8 +21,10 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           # Pinned rather than "latest": a Flutter upgrade should be a commit
-          # that also runs here, not a surprise in a pull request.
-          flutter-version: '3.47.9'
+          # that also runs here, not a surprise in a pull request. This must be
+          # the same major.minor.patch the release is built with, and it must
+          # ship a Dart SDK that satisfies `environment: sdk` in pubspec.yaml.
+          flutter-version: '3.50.0'
           channel: stable
           cache: true
 
