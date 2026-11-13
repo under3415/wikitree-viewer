@@ -61,13 +61,9 @@ class WikiTreeRepository {
           ancestors: ancestorDepth,
           descendants: descendantDepth,
         );
-        if (response.people.isEmpty) throw const NotFoundFailure();
-
         _graph.addAll(response.people);
-        var focus =
-            _graph.byId(response.resolvedId) ??
-            _graph.byWikiTreeId(candidate) ??
-            response.people.first;
+        var focus = await _focusFor(candidate, response);
+        if (focus == null) throw const NotFoundFailure();
 
         await _loadHorizontalRelatives(focus);
         focus = _graph.byId(focus.id) ?? focus;
@@ -174,6 +170,35 @@ class WikiTreeRepository {
   /// is all it takes to comply with WikiTree's caching rules.
   void clear() {
     _graph = FamilyGraph();
+  }
+
+  /// The person the tree should be centred on, or null when neither the answer
+  /// nor the key names anybody.
+  ///
+  /// `resultByKey` normally names them, which also follows a merge redirect.
+  /// Asking for descendants can take that away: WikiTree answers with
+  /// negative-id placeholders (`-1`, `-2`, ...) for private profiles, and for a
+  /// profile whose children are private it does the same to the requested
+  /// person. The resolved id is then not in `people` at all - nor is the key -
+  /// and the first remaining person is a grandchild. That is a real report:
+  /// `Umićević-3` opened a grandson instead of the man himself.
+  ///
+  /// So when the answer cannot name the focus, the profile is asked for once
+  /// more on its own. There is no cone to walk in that request, so nothing gets
+  /// masked, and it costs one profile instead of a whole family.
+  Future<Person?> _focusFor(String key, PeopleResponse response) async {
+    final named = _graph.byId(response.resolvedId) ?? _graph.byWikiTreeId(key);
+    if (named != null) return named;
+
+    // An unknown key arrives as a single empty record rather than an error, and
+    // there is nothing to ask for: let the caller retry with other capitals.
+    if (response.resolvedId == null && response.people.isEmpty) return null;
+
+    final solo = await api.getPeople(key: key);
+    _graph.addAll(solo.people);
+    return _graph.byId(solo.resolvedId) ??
+        _graph.byWikiTreeId(key) ??
+        (solo.people.length == 1 ? solo.people.first : null);
   }
 
   Future<void> _loadHorizontalRelatives(Person focus) async {

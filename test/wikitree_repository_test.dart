@@ -8,6 +8,11 @@ class _FakeApi implements WikiTreeApi {
   _FakeApi(this.people);
 
   final Map<String, PeopleResponse> people;
+
+  /// What a request for one profile on its own answers, when that differs from
+  /// the family cone in [people]. WikiTree leaves a private person out of their
+  /// own cone, so the app has to ask for them separately.
+  Map<String, PeopleResponse> solo = const <String, PeopleResponse>{};
   final List<String> requestedKeys = <String>[];
   RelativesResponse relatives = const RelativesResponse(
     groups: <RelativeGroup>[],
@@ -23,7 +28,8 @@ class _FakeApi implements WikiTreeApi {
     int descendants = 0,
   }) async {
     requestedKeys.add(key);
-    final response = people[key];
+    final plain = ancestors == 0 && descendants == 0;
+    final response = (plain ? solo[key] : null) ?? people[key];
     if (response == null) throw const NotFoundFailure();
     return response;
   }
@@ -151,6 +157,60 @@ void main() {
 
     expect(bundle.focus.id, 5185);
     expect(bundle.focus.displayName, 'Samuel Clemens');
+  });
+
+  test('centres on the person the cone left out', () async {
+    // Reported with Umićević-3. Private children make WikiTree mask the
+    // requested profile too, so `resultByKey` names an id that is not in
+    // `people`, the key is not there either, and the first person left is a
+    // grandchild - which is who the tree used to open.
+    final api =
+        _FakeApi(<String, PeopleResponse>{
+            'Clemens-1': PeopleResponse(
+              people: const <Person>[_child, _sibling],
+              resolvedId: 5185,
+            ),
+          })
+          ..solo = <String, PeopleResponse>{
+            'Clemens-1': PeopleResponse(
+              people: const <Person>[_samuel],
+              resolvedId: 5185,
+            ),
+          };
+    final repository = WikiTreeRepository(api: api);
+
+    final bundle = await repository.loadFocus('Clemens-1');
+
+    expect(bundle.focus.id, 5185);
+    expect(bundle.focus.wikiTreeId, 'Clemens-1');
+    // Asking for the profile again must not throw away the family the cone
+    // already brought in.
+    expect(bundle.children.map((person) => person.id), <int>[3586]);
+    expect(api.requestedKeys, <String>['Clemens-1', 'Clemens-1']);
+  });
+
+  test('opens a profile whose whole family is private', () async {
+    // Every relative masked means the cone holds no usable person at all. The
+    // profile still exists and must open instead of being called not found.
+    final api =
+        _FakeApi(<String, PeopleResponse>{
+            'Living-1': const PeopleResponse(
+              people: <Person>[],
+              resolvedId: 7000,
+            ),
+          })
+          ..solo = <String, PeopleResponse>{
+            'Living-1': const PeopleResponse(
+              people: <Person>[_livingParent],
+              resolvedId: 7000,
+            ),
+          };
+    final repository = WikiTreeRepository(api: api);
+
+    final bundle = await repository.loadFocus('Living-1');
+
+    expect(bundle.focus.id, 7000);
+    expect(bundle.parents, isEmpty);
   });
 
   test('merges siblings, spouses and parents into the graph', () async {

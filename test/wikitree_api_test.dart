@@ -272,5 +272,8 @@ void main() {
     expect(captured.queryParameters['keys'], 'Clemens-1,Langdon-1');
     expect(captured.queryParameters['getSiblings'], '1');
     expect(captured.queryParameters['getSpouses'], '1');
+    // `Father` and `Mother` are only ids; the relatives themselves arrive in
+    // `Parents`, which WikiTree leaves out unless it is asked for.
+    expect(captured.queryParameters['getParents'], '1');
   });
 }

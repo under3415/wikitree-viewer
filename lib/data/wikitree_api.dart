@@ -141,6 +141,10 @@ class HttpWikiTreeApi implements WikiTreeApi {
     final map = await _request(<String, String>{
       'action': 'getRelatives',
       'keys': keys.join(','),
+      // WikiTree answers with `Father`/`Mother` ids alone unless this is asked
+      // for, and an id is not a card. Without it a tapped person whose parents
+      // were not part of the loaded tree showed no parents at all.
+      'getParents': '1',
       if (siblings) 'getSiblings': '1',
       if (spouses) 'getSpouses': '1',
     });
