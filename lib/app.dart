@@ -1,4 +1,8 @@
-import 'package:flutter/material.dart';
+import 'package:cupertino_ui/cupertino_ui.dart'
+    show GlobalCupertinoLocalizations;
+import 'package:flutter_localizations/flutter_localizations.dart'
+    show GlobalWidgetsLocalizations;
+import 'package:material_ui/material_ui.dart';
 
 import '../data/preferences.dart';
 import '../data/wikitree_repository.dart';
@@ -23,6 +27,22 @@ class WikiTreeViewerApp extends StatelessWidget {
   /// WikiTree IDs coming from links that opened the app.
   final Stream<String>? links;
 
+  /// What `MaterialApp` needs in order to translate its own widgets.
+  ///
+  /// `AppLocalizations.localizationsDelegates` is deliberately not used:
+  /// `flutter gen-l10n` still fills that list from `flutter_localizations`, whose
+  /// Material and Cupertino delegates were deprecated in Flutter 3.47, and
+  /// material_ui's widgets do not accept them - a German device came back with
+  /// "No MaterialLocalizations found". [GlobalWidgetsLocalizations] is not
+  /// deprecated and stays where it is.
+  static const List<LocalizationsDelegate<dynamic>> _delegates =
+      <LocalizationsDelegate<dynamic>>[
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ];
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -33,7 +53,7 @@ class WikiTreeViewerApp extends StatelessWidget {
       darkTheme: AppTheme.dark(),
       themeMode: ThemeMode.system,
       // The device language wins; every other language falls back to English.
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      localizationsDelegates: _delegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: LookupScreen(
         repository: repository,

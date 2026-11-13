@@ -4,17 +4,28 @@ import '../core/crash_reporter.dart';
 
 /// What the app remembers between runs.
 ///
-/// Deliberately tiny: the last family code the user opened, and whether the
+/// Deliberately tiny: the family codes the user opened recently, and whether the
 /// how-to hints for the tree have been shown. Nothing about the people in the
 /// tree is ever written - WikiTree's app policies do not allow keeping profile
 /// data beyond the session - and there is no account, so there is nothing else
 /// worth storing.
 abstract interface class AppPreferences {
+  /// How many codes are kept for the suggestions on the lookup screen.
+  ///
+  /// Ten is enough to cover the handful of families somebody actually revisits
+  /// without turning the box into a history list.
+  static const int maxRecentCodes = 10;
+
   /// The code of the last family opened, ready to go back in the box.
   Future<String?> lastCode();
 
-  /// Remembers [code] as the code that was opened last.
+  /// Remembers [code] as the code that was opened last, and moves it to the
+  /// front of the recent list. The same code never appears twice.
   Future<void> rememberCode(String code);
+
+  /// The codes opened recently, most recent first, for the suggestions offered
+  /// while a code is being typed.
+  Future<List<String>> recentCodes();
 
   /// Whether the "how to use the tree" hints have already been shown.
   Future<bool> hasSeenTreeTips();
@@ -23,7 +34,7 @@ abstract interface class AppPreferences {
   Future<void> markTreeTipsSeen();
 }
 
-/// The real thing: two keys in the device's own storage.
+/// The real thing: three keys in the device's own storage.
 ///
 /// Every call is guarded. If the platform storage is unavailable the app simply
 /// forgets, because a convenience from the last run is never worth an error on
@@ -36,6 +47,7 @@ class DevicePreferences implements AppPreferences {
 
   /// Only has to be unique inside this app; the plugin namespaces the rest.
   static const String lastCodeKey = 'lastFamilyCode';
+  static const String recentCodesKey = 'recentFamilyCodes';
   static const String treeTipsKey = 'treeTipsSeen';
 
   @override
@@ -53,8 +65,34 @@ class DevicePreferences implements AppPreferences {
   Future<void> rememberCode(String code) async {
     try {
       await _store.setString(lastCodeKey, code);
+
+      // Newest first, and opening the same family again moves it up rather than
+      // adding a duplicate.
+      final previous =
+          await _store.getStringList(recentCodesKey) ?? const <String>[];
+      final next = <String>[
+        code,
+        ...previous.where(
+          (existing) => existing.toLowerCase() != code.toLowerCase(),
+        ),
+      ].take(AppPreferences.maxRecentCodes).toList(growable: false);
+      await _store.setStringList(recentCodesKey, next);
     } catch (error, stack) {
       CrashReporter.record(error, stack, reason: 'prefs-write');
+    }
+  }
+
+  @override
+  Future<List<String>> recentCodes() async {
+    try {
+      final codes = await _store.getStringList(recentCodesKey);
+      if (codes == null) return const <String>[];
+      return codes
+          .where((code) => code.trim().isNotEmpty)
+          .toList(growable: false);
+    } catch (error, stack) {
+      CrashReporter.record(error, stack, reason: 'prefs-read');
+      return const <String>[];
     }
   }
 

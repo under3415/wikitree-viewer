@@ -50,7 +50,11 @@ abstract final class AppInfo {
 
   /// The emblem, declared in pubspec.yaml. The launcher icons are rendered from
   /// this same artwork (see tool/make_launcher_icons.dart).
-  static const String logoAsset = 'art/wikitree-reader-logo.svg';
+  /// The app icon - the art the launcher and the store show - used as the
+  /// emblem on the first screen. A PNG rather than the source SVG because the
+  /// icon carries its rounded mask; `art/wikitree-reader-logo.svg` stays the
+  /// master the launcher icons are rendered from (see README.md).
+  static const String appIconAsset = 'art/app_icon512.png';
 
   static const String exampleKey = 'Einstein-1';
 

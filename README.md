@@ -31,7 +31,7 @@ in place and tested.
 | Photos in the tree, on-demand generations | done |
 | Details sheet (long-press) | done |
 | First-run hints on the tree, once per install | done |
-| Remembers the last family code (shared preferences) | done |
+| Remembers the families opened recently, and suggests them while typing | done |
 | Deep links (Android App Link + `wikitreeviewer://`) | done |
 | Release hardening (signing, icons, store listings) | done |
 | VoiceOver/TalkBack walk-through, iOS release | next |
@@ -51,7 +51,7 @@ in place and tested.
 - Each box shows the person's WikiTree 75-pixel thumbnail, or their initials
   when there is no photo.
 
-### The first time: hints, and the last family
+### The first time: hints, and the families opened before
 
 The first tree a user opens carries a dialog (`TreeTipsDialog`, in
 `lib/ui/widgets/tree_tips.dart`) with one line and one icon per gesture: drag to
@@ -66,10 +66,18 @@ lookup is remembered, and the canonical WikiTree ID is stored rather than what
 was typed, so a pasted profile link leaves `Einstein-1` behind, and a typo never
 greets the user next time.
 
-Both live behind `AppPreferences` (`lib/data/preferences.dart`): an interface,
+Typing then offers the families opened before: `recentFamilyCodes` keeps the last
+ten codes, newest first, and any of them that match what is in the box appear
+underneath it (`_RecentSuggestions` in `lib/ui/screens/lookup_screen.dart`).
+Tapping one opens it, because a suggestion that only filled the box would cost
+the second tap it exists to save. Opening the same family again moves its code to
+the front instead of adding a duplicate, and an empty box shows nothing - a list
+of every code would be a menu, not a suggestion.
+
+Those live behind `AppPreferences` (`lib/data/preferences.dart`): an interface,
 `DevicePreferences` on top of `shared_preferences`, and an in-memory fake in the
-widget tests. Those two values are the only things written to disk - nothing
-about the people in a tree - which is what the privacy policy promises.
+widget tests. Along with `treeTipsSeen` they are the only things written to disk -
+nothing about the people in a tree - which is what the privacy policy promises.
 
 ### Typing a family code
 
@@ -209,16 +217,25 @@ upload.
 
 It checks that the upload key is configured, runs `flutter pub upgrade
 --major-versions`, builds the release App Bundle, keeps the symbol map of that exact
-build, uploads those symbols to Crashlytics, records the version in `pubspec.yaml`,
-then commits everything as `Release <version>` and pushes it to origin. Nothing else
-is produced: Play takes the `.aab`, and there is no APK to keep in sync.
+build, records the version in `pubspec.yaml`, commits everything as `Release
+<version>` and pushes it to origin, and only then uploads the symbols to
+Crashlytics. Nothing else is produced: Play takes the `.aab`, and there is no APK to
+keep in sync.
 
-Two things worth knowing about that commit:
+Three things worth knowing about that order:
 
-* it stages the whole working tree (`git add --all`), so any other work in progress
-  is recorded with the release - start from a clean tree when that matters;
-* it runs after the build and the upload, so a failed build leaves the repository
-  untouched and what is committed is exactly the tree the bundle was built from.
+* the commit stages the whole working tree (`git add --all`), so any other work in
+  progress is recorded with the release - start from a clean tree when that matters;
+* it runs after the build, so a failed build leaves the repository untouched and
+  what is committed is exactly the tree the bundle was built from;
+* the Crashlytics upload runs after the commit and never fails the release. It tries
+  three times, ten and then twenty seconds apart, because what goes wrong there is a
+  request dying mid-upload, not bad symbols - and repeating it is harmless, since
+  symbols are matched by the library's build id. If all three attempts fail the
+  release stands, and the script prints the command to repeat together with
+  `build/symbols/<version>/crashlytics-upload.log`, which keeps firebase's own
+  output: on its own it reports nothing but `java command failed` and the arguments
+  it used, and the reason is in the lines above that one.
   `-NoPush` commits locally without pushing (no network, no credentials), and
   `-DryRun` prints every command without running any of it.
 
@@ -262,6 +279,30 @@ Toolchain: AGP 9.5.1, Gradle 9.9.1 and Kotlin 2.4.21 (`android/settings.gradle.k
 minimums it knows (Gradle 9.5.0 / AGP 9.4 alongside it), so newer stable releases are
 fine; if a future Flutter SDK starts refusing them, `-IgnoreToolchainCheck` passes
 `--android-skip-build-dependency-validation` and lets the build run.
+
+The Google plugins come from `android/settings.gradle.kts` too:
+`com.google.gms.google-services` 4.6.0 and `com.google.firebase.crashlytics`
+3.0.8. The Firebase Android SDK is the **BOM** version pinned once in
+`android/build.gradle.kts` (`FlutterFire["FirebaseSDKVersion"]` = 35.2.0, which is
+Crashlytics 21.1.0). No BOM is declared in `app/build.gradle.kts`: each FlutterFire
+plugin already applies `platform("com.google.firebase:firebase-bom")` to itself and
+reads that property, so the root build is the one place to move the whole
+Core/Crashlytics/Sessions/Installations set. Bump it together with `firebase_core`
+/ `firebase_crashlytics`, and keep the Crashlytics Gradle plugin compatible with the
+Crashlytics SDK the BOM brings.
+
+The Android SDK levels are the other half of the toolchain, and they are visible in
+one place: `android/gradle.properties`.
+`android/app/build.gradle.kts` reads `flutter.compileSdk`, `flutter.compileSdkMinor`,
+`flutter.sdkExtension`, `flutter.minSdk`, `flutter.targetSdk`, `flutter.ndkVersion`
+and `flutter.buildToolsVersion` from it, and lets `android/local.properties`
+override any of them on one machine - that file is gitignored and already holds
+`flutter.sdk`/`sdk.dir`, so a local toolchain can be pinned without touching the
+repository. The defaults stay in the repository rather than in `local.properties`,
+so a fresh clone and CI build the same app. Current values: compileSdk 37 with
+minor 2 and extension 0 (platform `android-37.2`), minSdk 28, targetSdk 37, NDK
+30.0.16248370, build-tools 37.0.0. Note that minSdk 28 is Android 9: devices on
+Android 7 or 8 (API 24-27) can no longer install the app.
 
 Release builds are signed with the upload key in `~/keys/wikitree-viewer-upload.jks`
 (alias `upload`), read from `android/key.properties`. Both the keystore and that
@@ -424,6 +465,12 @@ falls back to English. Every word a user can see lives in `lib/l10n/app_<code>.a
   translators, and a key exists only once it is in this file.
 - `flutter gen-l10n` writes `lib/l10n/app_localizations*.dart`; `flutter pub get`
   and every build do it too, so those files are never edited by hand.
+- The delegates `MaterialApp` needs come from `material_ui` and `cupertino_ui`
+  (`lib/app.dart`), not from `AppLocalizations.localizationsDelegates`: since
+  Flutter 3.47 the Material and Cupertino delegates in `flutter_localizations`
+  are deprecated, and material_ui's widgets ignore them. The generator still
+  emits that list, so `l10n.yaml` prepends a header to every generated file with
+  the one `ignore_for_file` it needs.
 - `l10n.yaml` also turns on the untranslated-messages report: anything missing
   from a translation is written to `l10n_untranslated.json` instead of quietly
   shipping English.
@@ -450,12 +497,11 @@ run `flutter gen-l10n`, and it appears in `supportedLocales`.
 
 ## The emblem and the app icon
 
-`art/wikitree-reader-logo.svg` is the WikiTree emblem with reading glasses added.
-One file feeds both places:
-
-- the first screen shows it as vector art (`flutter_svg`), so it stays sharp at
-  any text size;
-- the launcher icon on Android, iOS and the web is rendered from it.
+`art/wikitree-reader-logo.svg` is the WikiTree emblem with reading glasses added,
+and it feeds the launcher icons on Android, iOS and the web. The first screen
+shows the finished icon instead - `art/app_icon512.png`, the same 512-pixel image
+the Play Store listing uses - so the thing on the home screen and the thing that
+opens are the same picture, right down to the rounded mask.
 
 Launchers want pixels, so the icon is a two-step build:
 

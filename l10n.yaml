@@ -12,3 +12,6 @@ nullable-getter: false
 preferred-supported-locales: [en]
 # Every key must exist in every language; this file lists anything missing.
 untranslated-messages-file: l10n_untranslated.json
+# A note prepended to every generated file, with the one ignore that generated
+# code needs (see the file itself); `flutter gen-l10n` takes it from here.
+header-file: localizations_header.txt

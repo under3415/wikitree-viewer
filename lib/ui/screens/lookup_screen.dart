@@ -1,8 +1,7 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../core/constants.dart';
 import '../../core/crash_reporter.dart';
@@ -39,11 +38,18 @@ class LookupScreen extends StatefulWidget {
 }
 
 class _LookupScreenState extends State<LookupScreen> {
+  /// How many remembered codes are offered at once. More than this turns the
+  /// suggestion list into a second screen under the box.
+  static const int _maxSuggestions = 5;
+
   final TextEditingController _input = TextEditingController();
   final FocusNode _inputFocus = FocusNode();
   StreamSubscription<String>? _links;
   bool _busy = false;
   WikiTreeFailure? _failure;
+
+  /// The codes this device opened before, newest first.
+  List<String> _recent = const <String>[];
 
   @override
   void initState() {
@@ -52,6 +58,34 @@ class _LookupScreenState extends State<LookupScreen> {
     // while a tree is open still lands here and opens the tree it points at.
     _links = widget.links?.listen(_openLink);
     unawaited(_restoreLastCode());
+    unawaited(_loadRecentCodes());
+  }
+
+  /// Reads the remembered codes, so typing can offer them.
+  Future<void> _loadRecentCodes() async {
+    final codes = await widget.preferences.recentCodes();
+    if (!mounted) return;
+    setState(() => _recent = codes);
+  }
+
+  /// Remembered codes that match what is in the box, newest first.
+  ///
+  /// Nothing is offered for an empty box: the point is to save typing, and a
+  /// list of codes with nothing typed is a menu, not a suggestion. The code that
+  /// is already there in full is skipped, because the button underneath already
+  /// does what tapping it would do.
+  List<String> _suggestionsFor(String typed) {
+    final text = typed.trim().toLowerCase();
+    if (text.isEmpty) return const <String>[];
+
+    final matches = <String>[];
+    for (final code in _recent) {
+      final lower = code.toLowerCase();
+      if (lower == text || !lower.contains(text)) continue;
+      matches.add(code);
+      if (matches.length == _maxSuggestions) break;
+    }
+    return matches;
   }
 
   /// Puts the family the user opened last back in the box, so the second visit
@@ -63,6 +97,13 @@ class _LookupScreenState extends State<LookupScreen> {
     if (!mounted || code == null || _input.text.isNotEmpty) return;
     _input.text = code;
     _input.selection = TextSelection.collapsed(offset: code.length);
+  }
+
+  /// Writes [code] down and refreshes the suggestions, so the family just opened
+  /// is offered next time without waiting for a restart.
+  Future<void> _remember(String code) async {
+    await widget.preferences.rememberCode(code);
+    await _loadRecentCodes();
   }
 
   @override
@@ -144,7 +185,7 @@ class _LookupScreenState extends State<LookupScreen> {
     // Remembered only once WikiTree has answered, so a typo is never the code
     // that greets the user next time. The canonical id, not the raw input: a
     // pasted profile link leaves clean code behind.
-    unawaited(widget.preferences.rememberCode(loaded.focus.wikiTreeId));
+    unawaited(_remember(loaded.focus.wikiTreeId));
 
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -184,48 +225,69 @@ class _LookupScreenState extends State<LookupScreen> {
                   const _Header(),
                   const SizedBox(height: 36),
                   // Rebuilt as the text changes so the clear button can appear
-                  // only when there is something to clear.
+                  // only when there is something to clear, and so the families
+                  // opened before can be offered underneath while typing.
                   ValueListenableBuilder<TextEditingValue>(
                     valueListenable: _input,
-                    builder: (context, value, child) => TextField(
-                      controller: _input,
-                      // Deliberately *not* disabled while loading: a disabled
-                      // field cannot take focus, so tapping it would do nothing
-                      // and the keyboard would never come up.
-                      focusNode: _inputFocus,
-                      autocorrect: false,
-                      enableSuggestions: false,
-                      // WikiTree IDs are case sensitive, and nobody types the
-                      // capital. A pasted link is left exactly as it is.
-                      inputFormatters: const <TextInputFormatter>[
-                        WikiTreeIdCaseFormatter(),
-                      ],
-                      textInputAction: TextInputAction.go,
-                      style: theme.textTheme.titleLarge,
-                      onSubmitted: _busy ? null : _open,
-                      // Tapping anywhere else (including the button) closes the
-                      // keyboard, which is what mobile users expect.
-                      onTapOutside: (_) => _inputFocus.unfocus(),
-                      decoration: InputDecoration(
-                        labelText: l10n.lookupLabel,
-                        prefixIcon: const Icon(Icons.person_search_outlined),
-                        suffixIcon: value.text.isEmpty
-                            ? null
-                            : IconButton(
-                                key: const ValueKey<String>('lookup-clear'),
-                                tooltip: l10n.lookupClear,
-                                onPressed: _busy ? null : _clear,
-                                icon: const Icon(Icons.close_rounded),
+                    builder: (context, value, child) {
+                      final suggestions = _suggestionsFor(value.text);
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: <Widget>[
+                          TextField(
+                            controller: _input,
+                            // Deliberately *not* disabled while loading: a disabled
+                            // field cannot take focus, so tapping it would do nothing
+                            // and the keyboard would never come up.
+                            focusNode: _inputFocus,
+                            autocorrect: false,
+                            enableSuggestions: false,
+                            // WikiTree IDs are case sensitive, and nobody types the
+                            // capital. A pasted link is left exactly as it is.
+                            inputFormatters: const <TextInputFormatter>[
+                              WikiTreeIdCaseFormatter(),
+                            ],
+                            textInputAction: TextInputAction.go,
+                            style: theme.textTheme.titleLarge,
+                            onSubmitted: _busy ? null : _open,
+                            // Tapping anywhere else (including the button) closes the
+                            // keyboard, which is what mobile users expect.
+                            onTapOutside: (_) => _inputFocus.unfocus(),
+                            decoration: InputDecoration(
+                              labelText: l10n.lookupLabel,
+                              prefixIcon: const Icon(
+                                Icons.person_search_outlined,
                               ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 20,
-                        ),
-                      ),
-                    ),
+                              suffixIcon: value.text.isEmpty
+                                  ? null
+                                  : IconButton(
+                                      key: const ValueKey<String>(
+                                        'lookup-clear',
+                                      ),
+                                      tooltip: l10n.lookupClear,
+                                      onPressed: _busy ? null : _clear,
+                                      icon: const Icon(Icons.close_rounded),
+                                    ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 20,
+                              ),
+                            ),
+                          ),
+                          if (suggestions.isNotEmpty) ...<Widget>[
+                            const SizedBox(height: 8),
+                            _RecentSuggestions(
+                              title: l10n.lookupRecentTitle,
+                              codes: suggestions,
+                              onSelected: _busy ? null : _open,
+                            ),
+                          ],
+                        ],
+                      );
+                    },
                   ),
                   const SizedBox(height: 16),
                   FilledButton.icon(
@@ -271,16 +333,16 @@ class _LookupScreenState extends State<LookupScreen> {
                     alignment: WrapAlignment.center,
                     children: <Widget>[
                       TextButton(
-                        onPressed: _busy ? null : () => _open(AppInfo.exampleKey),
+                        onPressed: _busy
+                            ? null
+                            : () => _open(AppInfo.exampleKey),
                         child: Text(l10n.lookupTryExample(AppInfo.exampleKey)),
                       ),
                       TextButton(
                         onPressed: _busy
                             ? null
                             : () => _open(AppInfo.secondExampleKey),
-                        child: Text(
-                          l10n.lookupOrTry(AppInfo.secondExampleKey),
-                        ),
+                        child: Text(l10n.lookupOrTry(AppInfo.secondExampleKey)),
                       ),
                     ],
                   ),
@@ -310,18 +372,19 @@ class _Header extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final l10n = AppLocalizations.of(context);
-    // Vector art, so it can grow with the reader's text size without going blurry
-    // or eating the screen.
-    final logoSize = MediaQuery.textScalerOf(context)
+    // The app icon itself, so the first thing the app shows is the thing that
+    // was tapped on the home screen. It grows with the reader's text size, up
+    // to a size that still leaves room for the box underneath.
+    final iconSize = MediaQuery.textScalerOf(context)
         .scale(112)
         .clamp(112.0, 160.0);
     return Column(
       children: <Widget>[
-        SvgPicture.asset(
-          AppInfo.logoAsset,
-          width: logoSize,
-          height: logoSize,
-          semanticsLabel: l10n.appTitle,
+        Image.asset(
+          AppInfo.appIconAsset,
+          width: iconSize,
+          height: iconSize,
+          semanticLabel: l10n.appTitle,
         ),
         const SizedBox(height: 20),
         Text(
@@ -338,6 +401,61 @@ class _Header extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The codes this device opened before that match what is being typed.
+///
+/// Tapping one opens it: a suggestion that only filled the box would cost the
+/// second tap that the suggestion existed to save.
+class _RecentSuggestions extends StatelessWidget {
+  const _RecentSuggestions({
+    required this.title,
+    required this.codes,
+    required this.onSelected,
+  });
+
+  final String title;
+  final List<String> codes;
+  final ValueChanged<String>? onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Card(
+      margin: EdgeInsets.zero,
+      elevation: 0,
+      color: scheme.surfaceContainerHighest,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: Text(
+              title,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          for (final code in codes)
+            ListTile(
+              key: ValueKey<String>('lookup-suggestion-$code'),
+              dense: true,
+              leading: Icon(
+                Icons.history_rounded,
+                size: 20,
+                color: scheme.onSurfaceVariant,
+              ),
+              title: Text(code, style: theme.textTheme.titleMedium),
+              onTap: onSelected == null ? null : () => onSelected!(code),
+            ),
+        ],
+      ),
     );
   }
 }

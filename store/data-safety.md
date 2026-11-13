@@ -10,7 +10,7 @@ actually does. This file is the copy to paste into both consoles.
 | --- | --- |
 | `firebase_core`, `firebase_crashlytics` | **Yes** - anonymous crash reports, release builds only, collection off in debug builds and when `CrashReporter.setUserEnabled(false)` is set |
 | `http` | Only the WikiTree API request the user asked for (`api.wikitree.com`) |
-| `flutter_svg`, images | Only WikiTree's 75 px thumbnails (`www.wikitree.com`) |
+| images (`Image.network`) | Only WikiTree's 75 px thumbnails (`www.wikitree.com`) |
 | `url_launcher` | Opens a WikiTree.com page in the user's browser - the app itself sends nothing |
 | `share_plus` | Hands text to the system share sheet; the chosen app receives it, not us |
 | `app_links`, `shared_preferences`, `intl` | Nothing off the device |
@@ -20,11 +20,13 @@ no location, contacts, camera, microphone or storage permission**, and no
 advertising identifier. Crash reports carry no WikiTree ID, no URL and no family
 data - `CrashReporter` only ever passes a fixed tag such as `tree-focus`.
 
-`shared_preferences` writes exactly two values to the device's own app storage:
-the last family code the user opened (`lastFamilyCode`) and whether the how-to
-hints on the tree have been shown (`treeTipsSeen`). Neither leaves the device, and
-uninstalling the app removes both - which is what the "stays on your device"
-section of the privacy page says.
+`shared_preferences` writes exactly three values to the device's own app storage:
+the codes opened recently (`recentFamilyCodes`, at most ten, so the lookup box can
+suggest them while the user types), the last of those (`lastFamilyCode`, which
+fills the box on the next visit) and whether the how-to hints on the tree have
+been shown (`treeTipsSeen`). None of them leaves the device, and uninstalling the
+app removes all three - which is what the "stays on your device" section of the
+privacy page says.
 
 ## Google Play - App content -> Data safety
 

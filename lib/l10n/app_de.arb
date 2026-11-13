@@ -10,6 +10,7 @@
   "lookupSubmit": "Stammbaum anzeigen",
   "lookupBusy": "Wird gesucht…",
   "lookupPaste": "Link einfügen",
+  "lookupRecentTitle": "Zuletzt geöffnet",
   "lookupExamplePrompt": "Zum ersten Mal hier? Probieren Sie ein Beispiel aus, um zu sehen, wie ein Stammbaum aussieht.",
   "lookupTryExample": "{code} ausprobieren",
   "lookupOrTry": "oder {code}",

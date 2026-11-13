@@ -10,6 +10,7 @@
   "lookupSubmit": "Afficher l'arbre familial",
   "lookupBusy": "Recherche…",
   "lookupPaste": "Coller un lien",
+  "lookupRecentTitle": "Ouverts récemment",
   "lookupExamplePrompt": "Première visite ? Essayez un exemple pour voir à quoi ressemble un arbre.",
   "lookupTryExample": "Essayer {code}",
   "lookupOrTry": "ou {code}",

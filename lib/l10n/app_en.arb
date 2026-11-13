@@ -13,6 +13,7 @@
   "lookupSubmit": "Show family tree",
   "lookupBusy": "Looking up…",
   "lookupPaste": "Paste a link",
+  "lookupRecentTitle": "Recently opened",
   "lookupExamplePrompt": "First time here? Try an example to see how a tree looks.",
   "lookupTryExample": "Try {code}",
   "@lookupTryExample": {

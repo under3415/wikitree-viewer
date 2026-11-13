@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.4+4
+version: 1.0.5+5
 environment:
   sdk: ^3.13.7
 
@@ -57,13 +57,23 @@ dependencies:
   app_links: ^7.2.2
   share_plus: ^13.3.1
 
-  # The emblem on the first screen. It is vector art, so it stays sharp at every
-  # text scale and no extra pixel assets are needed.
-  flutter_svg: ^2.3.3
+  # Material widgets and their localisations. Flutter 3.47 moved them out of
+  # the SDK: `package:flutter/material.dart` is deprecated in favour of this.
+  material_ui: ^1.11.0
+
+  # Only for GlobalCupertinoLocalizations, which MaterialApp still needs for its
+  # iOS page transitions; material_ui depends on it, but the import is direct.
+  cupertino_ui: ^1.1.6
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
+  # Rasterises art/wikitree-reader-logo.svg into the launcher icon masters
+  # (`flutter test tool/make_launcher_icons.dart`). Nothing at runtime draws
+  # SVG any more - the first screen shows the finished app icon - so this is a
+  # build-time dependency only.
+  flutter_svg: ^2.3.3
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -90,10 +100,10 @@ flutter:
   # l10n.yaml.
   generate: true
 
-  # The emblem shown on the first screen. It is the artwork the launcher icons are
-  # made from, so the app and the home screen cannot drift apart.
+  # The emblem shown on the first screen: the app icon itself, so the screen and
+  # the launcher cannot drift apart.
   assets:
-    - art/wikitree-reader-logo.svg
+    - art/app_icon512.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

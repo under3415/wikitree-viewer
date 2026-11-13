@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Material 3 theme tuned for the people this app is for: generous text sizes,
 /// high contrast, and controls that are easy to hit.

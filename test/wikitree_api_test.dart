@@ -84,6 +84,26 @@ void main() {
     );
   });
 
+  test('reports a withheld family tree as a private profile', () async {
+    // What WikiTree answers for an Unlisted profile: the id, a reason, and a
+    // nameless placeholder in `people`. It used to surface as "not found".
+    final api = HttpWikiTreeApi(
+      client: MockClient(
+        (request) async => _json(
+          '{"status":"","resultByKey":{"Umićević-2":{"Id":49242991,'
+          '"status":"Ancestor/Descendant permission denied."}},'
+          '"people":{"-1":{"Id":-1,"PageId":54442844,"Privacy":10,'
+          '"Father":-2,"Mother":-3}}}',
+        ),
+      ),
+    );
+
+    await expectLater(
+      api.getPeople(key: 'Umićević-2', ancestors: 3, descendants: 2),
+      throwsA(isA<PrivateProfileFailure>()),
+    );
+  });
+
   test('asks for child ids only when checking for descendants', () async {
     late Uri captured;
     final api = HttpWikiTreeApi(

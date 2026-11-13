@@ -9,13 +9,22 @@
       2. upgrades dependencies to their latest major versions
          (flutter pub upgrade --major-versions), which rewrites pubspec.lock,
       3. builds an obfuscated release App Bundle for Play,
-      4. hands the Dart symbol map of that exact build to Crashlytics,
+      4. keeps the Dart symbol map of that exact build in build/symbols/<version>,
       5. records the version in pubspec.yaml so the next run keeps counting up,
-      6. commits everything with the version in the message and pushes it.
+      6. commits everything with the version in the message and pushes it,
+      7. hands the symbol map to Crashlytics, retrying a failed request.
 
     Step 6 stages the whole working tree (git add --all), because a release is
     usually the moment a batch of work gets recorded. Anything else that was
     already uncommitted goes in with it.
+
+    Step 7 is last and never fails the release: the bundle, the version and the
+    commit already exist by then, and the map stays on disk, so a rejected upload
+    costs one re-run of the firebase command instead of a whole build. That
+    command is printed, and firebase's own output is kept in
+    build/symbols/<version>/crashlytics-upload.log, because the tool itself only
+    reports "java command failed" together with the arguments it used - the reason
+    is in what it printed before that line.
 
     The Crashlytics app id is read from firebase.json, so it cannot drift from the
     configuration the app itself is compiled with; -AppId overrides it.
@@ -97,6 +106,61 @@ function Invoke-Tool {
     if ($LASTEXITCODE -ne 0) {
         throw "$Name exited with code $LASTEXITCODE."
     }
+}
+
+# Uploads the symbol map and reports success, but leaves the decision to fail to
+# the caller: a release that is already built and committed must not be lost to a
+# network hiccup. Everything firebase prints is copied to $LogPath, since the tool
+# reports a failed java call with nothing but the arguments it used.
+function Invoke-SymbolUpload {
+    param(
+        [string[]] $Arguments,
+        [string] $LogPath,
+        [int] $Attempts = 3
+    )
+
+    Write-Host "  firebase $($Arguments -join ' ')" -ForegroundColor DarkGray
+    if ($DryRun) { return $true }
+
+    if (-not (Get-Command firebase -ErrorAction SilentlyContinue)) {
+        Write-Warning 'firebase is not on PATH, so the symbols were not uploaded.'
+        return $false
+    }
+
+    $exitCode = -1
+    for ($attempt = 1; $attempt -le $Attempts; $attempt++) {
+        if ($attempt -gt 1) {
+            $pause = 10 * ($attempt - 1)
+            Write-Warning "Attempt $($attempt - 1) of $Attempts failed (exit code $exitCode); retrying in $pause seconds."
+            Start-Sleep -Seconds $pause
+        }
+
+        Add-Content -LiteralPath $LogPath -Encoding utf8 `
+            -Value "--- attempt $attempt of $Attempts, $(Get-Date -Format s) ---"
+
+        # Same reason as in Invoke-Tool: firebase writes its progress to stderr,
+        # which Windows PowerShell turns into terminating errors while
+        # $ErrorActionPreference is 'Stop'. Merge it in, log it, judge by the code.
+        $previous = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        try {
+            & firebase @Arguments *>&1 | ForEach-Object {
+                $line = "$_"
+                Add-Content -LiteralPath $LogPath -Encoding utf8 -Value $line
+                Write-Host "  $line"
+            }
+            $exitCode = $LASTEXITCODE
+        } finally {
+            $ErrorActionPreference = $previous
+        }
+
+        if ($exitCode -eq 0) {
+            return $true
+        }
+    }
+
+    Write-Warning "firebase kept failing (last exit code $exitCode). The symbols are on disk: $LogPath"
+    return $false
 }
 
 # --- What are we building? -------------------------------------------------
@@ -207,16 +271,6 @@ if (-not $DryRun) {
     $symbolFiles = @(Get-ChildItem -LiteralPath $symbolsDir -Filter 'app.android-*.symbols' -File)
 }
 
-Write-Step 'Uploading the Dart symbols to Crashlytics'
-$upload = @('crashlytics:symbols:upload', "--app=$AppId")
-if ($firebaseProject) { $upload += "--project=$firebaseProject" }
-if ($DryRun) {
-    $upload += "$symbolsDir\app.android-*.symbols"
-} else {
-    $upload += $symbolFiles | ForEach-Object { $_.FullName }
-}
-Invoke-Tool firebase $upload
-
 # --- Record the version ----------------------------------------------------
 
 if (-not $DryRun) {
@@ -261,21 +315,61 @@ if ($DryRun) {
     }
 }
 
+# --- Crashlytics -----------------------------------------------------------
+
+# Last on purpose: the release - bundle, version, commit, push - exists by now, so
+# a rejected upload costs a re-run of one command rather than a rebuild. It is
+# also safe to repeat: symbols are matched by the library's build id, and a file
+# that is already there is simply overwritten.
+Write-Step 'Uploading the Dart symbols to Crashlytics'
+
+$upload = @('crashlytics:symbols:upload', "--app=$AppId")
+if ($firebaseProject) { $upload += "--project=$firebaseProject" }
+if ($DryRun) {
+    $upload += "$symbolsDir\app.android-*.symbols"
+} else {
+    $upload += $symbolFiles | ForEach-Object { $_.FullName }
+}
+
+$uploadLog = Join-Path $symbolsDir 'crashlytics-upload.log'
+$uploaded = Invoke-SymbolUpload -Arguments $upload -LogPath $uploadLog
+
 # --- What now? -------------------------------------------------------------
 
 Write-Step 'Built'
 
-Write-Host "  version   $newVersion"
-Write-Host "  bundle    $aabPath"
-Write-Host "  symbols   $symbolsDir"
-Write-Host "  commit    `"$commitMessage`""
+Write-Host "  version      $newVersion"
+Write-Host "  bundle       $aabPath"
+Write-Host "  symbols      $symbolsDir"
+if ($DryRun) {
+    Write-Host '  crashlytics  not uploaded (-DryRun)'
+} elseif ($uploaded) {
+    Write-Host '  crashlytics  symbols uploaded'
+} else {
+    Write-Host '  crashlytics  NOT uploaded - see crashlytics-upload.log' -ForegroundColor Red
+}
+Write-Host "  commit       `"$commitMessage`""
 
 Write-Host ''
 Write-Host '  Upload the bundle to Play (internal testing first).'
 Write-Host '  Keep the symbols folder somewhere durable: it is the only way back from'
 Write-Host '  an obfuscated stack trace, and "flutter clean" deletes it.'
 Write-Host ''
-Write-Host '  Crashlytics now has the symbol map for this build, so new reports should'
-Write-Host '  arrive readable. For a trace already pasted out of the console:'
+
+if ($DryRun) {
+    Write-Host '  A real run hands the symbol map to Crashlytics, so new reports arrive'
+    Write-Host '  readable. A trace already pasted out of the console can be read locally:'
+} elseif ($uploaded) {
+    Write-Host '  Crashlytics has the symbol map for this build, so new reports should'
+    Write-Host '  arrive readable. A trace already pasted out of the console can also be'
+    Write-Host '  read locally:'
+} else {
+    Write-Host '  Crashlytics does not have the symbol map for this build, so new reports' -ForegroundColor Yellow
+    Write-Host '  will show obfuscated Dart frames. The release itself is built, committed' -ForegroundColor Yellow
+    Write-Host '  and pushed; repeat just the upload - it is safe to run twice - with:' -ForegroundColor Yellow
+    Write-Host "    firebase $($upload -join ' ')" -ForegroundColor Yellow
+    Write-Host ''
+    Write-Host '  Until then, a trace can be read locally:'
+}
 Write-Host "    flutter symbolize -i stack.txt -d `"$(Join-Path $symbolsDir 'app.android-arm64.symbols')`""
 

@@ -6,6 +6,10 @@ gradle-wrapper.jar
 /local.properties
 GeneratedPluginRegistrant.java
 .cxx/
+# Gradle writes reports (e.g. the problems report) here when the wrapper is run
+# from android/; the real build output goes to ../build, which the root
+# .gitignore covers.
+/build/
 
 # Remember to never publicly share your keystore.
 # See https://flutter.dev/to/reference-keystore

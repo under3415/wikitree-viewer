@@ -117,12 +117,25 @@ class HttpWikiTreeApi implements WikiTreeApi {
       final person = Person.tryFromJson(entry);
       if (person != null) people.add(person);
     }
-    if (people.isEmpty) throw const NotFoundFailure();
 
     int? resolvedId;
+    String? keyStatus;
     final resultByKey = asMap(map['resultByKey']);
     if (resultByKey != null && resultByKey.isNotEmpty) {
-      resolvedId = asInt(asMap(resultByKey.values.first)?['Id']);
+      final entry = asMap(resultByKey.values.first);
+      resolvedId = asInt(entry?['Id']);
+      keyStatus = asString(entry?['status']);
+    }
+
+    if (people.isEmpty) {
+      // `resultByKey` names the id and says why nothing came back: an Unlisted
+      // profile answers "Ancestor/Descendant permission denied." and sends a
+      // nameless placeholder instead of the person. Calling that "not found"
+      // tells the reader their relative does not exist, which is untrue.
+      if (keyStatus != null && _saysWithheld(keyStatus)) {
+        throw const PrivateProfileFailure();
+      }
+      throw const NotFoundFailure();
     }
 
     return PeopleResponse(people: people, resolvedId: resolvedId);
@@ -338,6 +351,15 @@ class HttpWikiTreeApi implements WikiTreeApi {
     }
 
     throw const ServerFailure();
+  }
+
+  /// Whether a per-key `resultByKey` status means WikiTree is withholding the
+  /// profile rather than saying it does not exist.
+  static bool _saysWithheld(String status) {
+    final lower = status.toLowerCase();
+    return lower.contains('permission denied') ||
+        lower.contains('private') ||
+        lower.contains('denied');
   }
 
   static List<Person> _peopleFrom(Object? value) {

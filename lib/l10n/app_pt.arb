@@ -10,6 +10,7 @@
   "lookupSubmit": "Ver árvore genealógica",
   "lookupBusy": "Procurando…",
   "lookupPaste": "Colar um link",
+  "lookupRecentTitle": "Abertos recentemente",
   "lookupExamplePrompt": "Primeira vez aqui? Experimente um exemplo para ver como é uma árvore.",
   "lookupTryExample": "Experimentar {code}",
   "lookupOrTry": "ou {code}",

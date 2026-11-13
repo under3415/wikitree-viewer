@@ -1,8 +1,8 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wikitree_viewer/app.dart';
 import 'package:wikitree_viewer/core/constants.dart';
@@ -268,16 +268,30 @@ class _PrivateApi implements WikiTreeApi {
 /// Preferences that live in memory, with the tree hints already seen unless a
 /// test says otherwise, so the existing tests keep seeing a plain tree.
 class _Prefs implements AppPreferences {
-  _Prefs({this.storedCode, this.treeTipsSeen = true});
+  _Prefs({String? storedCode, this.treeTipsSeen = true, List<String>? recent})
+    : storedCode = storedCode,
+      recent = recent ?? <String>[?storedCode];
 
   String? storedCode;
   bool treeTipsSeen;
+  List<String> recent;
 
   @override
   Future<String?> lastCode() async => storedCode;
 
   @override
-  Future<void> rememberCode(String code) async => storedCode = code;
+  Future<void> rememberCode(String code) async {
+    storedCode = code;
+    recent = <String>[
+      code,
+      ...recent.where(
+        (existing) => existing.toLowerCase() != code.toLowerCase(),
+      ),
+    ].take(AppPreferences.maxRecentCodes).toList(growable: false);
+  }
+
+  @override
+  Future<List<String>> recentCodes() async => recent;
 
   @override
   Future<bool> hasSeenTreeTips() async => treeTipsSeen;
@@ -528,18 +542,25 @@ void main() {
     expect(_fieldText(tester), link);
   });
 
-  testWidgets('the emblem greets you on the first screen', (tester) async {
+  testWidgets('the app icon greets you on the first screen', (tester) async {
     await tester.pumpWidget(_app());
     await tester.pumpAndSettle();
 
-    // One piece of art in the launcher and one on the screen: the widget only
-    // exists if the asset is declared and decodes.
-    expect(find.byType(SvgPicture), findsOneWidget);
+    // The screen shows the icon itself, not the source artwork: one image, and
+    // it is the asset the launcher and the store use.
+    final image = tester.widget<Image>(find.byType(Image));
+    expect((image.image as AssetImage).assetName, AppInfo.appIconAsset);
   });
 
-  test('the emblem asset ships with the app', () async {
-    final data = await rootBundle.load(AppInfo.logoAsset);
+  test('the app icon ships with the app', () async {
+    final data = await rootBundle.load(AppInfo.appIconAsset);
     expect(data.lengthInBytes, greaterThan(1000));
+
+    // It has to decode as well as exist: a truncated or wrongly exported file
+    // would only show up as a broken first screen.
+    final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
+    final frame = await codec.getNextFrame();
+    expect(frame.image.width, greaterThanOrEqualTo(512));
   });
 
   testWidgets('the app speaks the language the device is set to', (
@@ -743,11 +764,66 @@ void main() {
     expect(find.text('Show family tree'), findsOneWidget);
   });
 
+  testWidgets('offers the families opened before while a code is typed', (
+    tester,
+  ) async {
+    final preferences = _Prefs(
+      recent: <String>['Kennedy-96', 'Einstein-1', 'Marić-75'],
+    );
+    await tester.pumpWidget(
+      WikiTreeViewerApp(
+        repository: WikiTreeRepository(api: _FamilyApi()),
+        preferences: preferences,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // An empty box gets no list: that would be a menu, not a suggestion.
+    expect(find.text('Recently opened'), findsNothing);
+
+    await tester.enterText(find.byType(TextField), 'mar');
+    await tester.pump();
+
+    expect(find.text('Recently opened'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('lookup-suggestion-Marić-75')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('lookup-suggestion-Einstein-1')),
+      findsNothing,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('lookup-suggestion-Marić-75')),
+    );
+    await tester.pumpAndSettle();
+
+    // Tapping opens the family - one tap, which is what the suggestion is for -
+    // and the canonical code is what gets remembered.
+    expect(find.byType(TreeView), findsOneWidget);
+    expect(preferences.storedCode, 'Einstein-1');
+  });
+
+  testWidgets('offers nothing that is already in the box in full', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(preferences: _Prefs(storedCode: 'Kennedy-96')),
+    );
+    await tester.pumpAndSettle();
+
+    // The box holds the whole code, and the button underneath already opens it.
+    expect(find.text('Recently opened'), findsNothing);
+  });
+
   testWidgets('opening a tree remembers the code that worked', (tester) async {
     final preferences = _Prefs();
     await _openTree(tester, preferences: preferences);
 
     expect(preferences.storedCode, 'Einstein-1');
+    // And it is offered next time, without waiting for a restart.
+    expect(preferences.recent, <String>['Einstein-1']);
   });
 
   testWidgets('a code that did not open keeps the remembered one', (
