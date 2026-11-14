@@ -245,6 +245,25 @@ void main() {
     expect(calls, 1);
   });
 
+  test('a refresh throws the session cache away', () async {
+    var calls = 0;
+    final api = HttpWikiTreeApi(
+      cache: SessionResponseCache(),
+      client: MockClient((request) async {
+        calls++;
+        return _json(_fixture('get_people.json'));
+      }),
+    );
+
+    await api.getPeople(key: 'Clemens-1');
+    // This is the whole mechanism behind the refresh button: without it the
+    // cached answer would be served for the rest of the session.
+    api.invalidate();
+    await api.getPeople(key: 'Clemens-1');
+
+    expect(calls, 2);
+  });
+
   test('parses spouses, marriage details and hidden marriages', () async {
     final api = HttpWikiTreeApi(
       client: MockClient(

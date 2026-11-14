@@ -58,6 +58,22 @@ void main() {
     });
   });
 
+  test('the refresh message is written in each language', () async {
+    final done = <String, String>{
+      for (final code in _languages)
+        code: (await loadLocalizations(code)).refreshDone,
+    };
+
+    expect(done, <String, String>{
+      'en': 'Updated from WikiTree',
+      'de': 'Von WikiTree aktualisiert',
+      'es': 'Actualizado desde WikiTree',
+      'pt': 'Atualizado do WikiTree',
+      'fr': 'Mis à jour depuis WikiTree',
+      'sr': 'Ažurirano sa WikiTree-a',
+    });
+  });
+
   test('every language suggests families its readers recognise', () {
     for (final code in _languages) {
       final examples = AppInfo.examplesFor(code);
@@ -77,10 +93,7 @@ void main() {
     // A language the app does not speak falls back to the English pair.
     expect(AppInfo.examplesFor('it'), AppInfo.examplesFor('en'));
     // And the pair is not the same everywhere: that is the point.
-    expect(
-      AppInfo.examplesFor('de'),
-      <String>['Goethe-22', 'Van_Beethoven-1'],
-    );
+    expect(AppInfo.examplesFor('de'), <String>['Goethe-22', 'Van_Beethoven-1']);
     expect(AppInfo.examplesFor('sr'), <String>['Karađorđević-13', 'Tesla-1']);
     expect(AppInfo.examplesFor('fr'), <String>['Hugo-215', 'Bonaparte-1']);
   });
@@ -105,14 +118,8 @@ void main() {
     expect(three['pt'], '3 a mais');
     // Serbian counts in three shapes: one, a few (two to four) and the rest.
     expect(one['sr'], 'još 1 osoba');
-    expect(
-      (await loadLocalizations('sr')).moreCount(3),
-      'još 3 osobe',
-    );
-    expect(
-      (await loadLocalizations('sr')).moreCount(5),
-      'još 5 osoba',
-    );
+    expect((await loadLocalizations('sr')).moreCount(3), 'još 3 osobe');
+    expect((await loadLocalizations('sr')).moreCount(5), 'još 5 osoba');
   });
 
   group('dates', () {
@@ -220,10 +227,7 @@ void main() {
       emptyKey['fr'],
       'Saisissez un identifiant WikiTree ou un lien de profil.',
     );
-    expect(
-      emptyKey['sr'],
-      'Unesite WikiTree ID ili link profila.',
-    );
+    expect(emptyKey['sr'], 'Unesite WikiTree ID ili link profila.');
     expect(notFoundHint['es'], 'Revisa el código o pega el enlace del perfil.');
     expect(notFoundHint.values.toSet().length, _languages.length);
   });

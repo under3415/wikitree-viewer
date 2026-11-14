@@ -100,6 +100,12 @@ class AppLocalizationsSr extends AppLocalizations {
   String get moreUnknown => 'Više';
 
   @override
+  String get refreshTooltip => 'Preuzmi najnovije podatke sa WikiTree-a';
+
+  @override
+  String get refreshDone => 'Ažurirano sa WikiTree-a';
+
+  @override
   String get shareTooltip => 'Podeli ovu porodicu';
 
   @override

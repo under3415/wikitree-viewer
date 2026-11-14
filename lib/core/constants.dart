@@ -15,6 +15,18 @@ abstract final class ApiConfig {
   /// stays well below that with a minimum gap between requests.
   static const Duration minRequestSpacing = Duration(milliseconds: 150);
 
+  /// How long the refresh button rests after a refresh that worked.
+  ///
+  /// Refresh is the only thing in the app that throws away answers WikiTree has
+  /// already given, so it is the only thing that could become polling: a reader
+  /// watching a relative edit a profile would tap it every few seconds. Thirty
+  /// seconds allows following that, and caps one device at 120 refreshes an hour.
+  /// Each refresh costs at most three requests - the family cone, the relatives,
+  /// and the look below - so 360 an hour against WikiTree's 4000, and never more
+  /// than a few a minute against its 200. WikiTree counts those limits per user,
+  /// so this is one device's budget and not one the whole app shares.
+  static const Duration refreshCooldown = Duration(seconds: 30);
+
   /// Generations loaded around the starting person. More are fetched on demand
   /// when the user asks for them.
   static const int ancestorsDepth = 3;
@@ -91,15 +103,14 @@ abstract final class AppInfo {
   /// guessing: Goethe is `Goethe-22` (there is no `Goethe-1`), and Victor Hugo is
   /// `Hugo-215` - `Hugo-216` is a different family entirely. Bolívar's code
   /// carries its accent, because that is the id WikiTree uses.
-  static const Map<String, List<String>> _examples =
-      <String, List<String>>{
-        'en': <String>[exampleKey, secondExampleKey],
-        'de': <String>['Goethe-22', 'Van_Beethoven-1'],
-        'es': <String>['Borges-69', 'Bolívar-11'],
-        'fr': <String>['Hugo-215', 'Bonaparte-1'],
-        'pt': <String>['Senna_da_Silva-1', 'Bragança-8'],
-        'sr': <String>['Karađorđević-13', 'Tesla-1'],
-      };
+  static const Map<String, List<String>> _examples = <String, List<String>>{
+    'en': <String>[exampleKey, secondExampleKey],
+    'de': <String>['Goethe-22', 'Van_Beethoven-1'],
+    'es': <String>['Borges-69', 'Bolívar-11'],
+    'fr': <String>['Hugo-215', 'Bonaparte-1'],
+    'pt': <String>['Senna_da_Silva-1', 'Bragança-8'],
+    'sr': <String>['Karađorđević-13', 'Tesla-1'],
+  };
 
   /// The pair of example codes for [languageCode], e.g. `de`.
   static List<String> examplesFor(String languageCode) =>

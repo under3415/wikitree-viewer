@@ -36,7 +36,8 @@ void main() {
       'https://under3415.github.io/wikitree-viewer/open/?id=Clemens-1&utm=x':
           'Clemens-1',
       'https://under3415.github.io/wikitree-viewer/open/Clemens-1': 'Clemens-1',
-      'https://under3415.github.io/wikitree-viewer/open/#Clemens-1': 'Clemens-1',
+      'https://under3415.github.io/wikitree-viewer/open/#Clemens-1':
+          'Clemens-1',
     };
 
     cases.forEach((input, expected) {

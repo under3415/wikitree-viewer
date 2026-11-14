@@ -38,7 +38,9 @@ void main() {
     test('reads the shared page in the shapes a link can arrive in', () {
       expect(
         DeepLink.keyFrom(
-          Uri.parse('https://under3415.github.io/wikitree-viewer/open/Einstein-1'),
+          Uri.parse(
+            'https://under3415.github.io/wikitree-viewer/open/Einstein-1',
+          ),
         ),
         'Einstein-1',
       );
@@ -46,13 +48,17 @@ void main() {
       // code into the fragment; both are cheap to understand.
       expect(
         DeepLink.keyFrom(
-          Uri.parse('https://under3415.github.io/wikitree-viewer/open?id=Einstein-1'),
+          Uri.parse(
+            'https://under3415.github.io/wikitree-viewer/open?id=Einstein-1',
+          ),
         ),
         'Einstein-1',
       );
       expect(
         DeepLink.keyFrom(
-          Uri.parse('https://under3415.github.io/wikitree-viewer/open#Einstein-1'),
+          Uri.parse(
+            'https://under3415.github.io/wikitree-viewer/open#Einstein-1',
+          ),
         ),
         'Einstein-1',
       );
@@ -65,7 +71,10 @@ void main() {
         ),
         isNull,
       );
-      expect(DeepLink.keyFrom(Uri.parse('https://under3415.github.io/')), isNull);
+      expect(
+        DeepLink.keyFrom(Uri.parse('https://under3415.github.io/')),
+        isNull,
+      );
     });
 
     test('still reads the app link it used to share', () {

@@ -90,6 +90,14 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
   bool _busy = false;
   WikiTreeFailure? _failure;
 
+  /// Set while the refresh button rests after a refresh that worked, so a reader
+  /// watching somebody else edit a profile cannot turn it into a polling loop.
+  ///
+  /// A flag and a timer rather than a timestamp: `DateTime.now()` does not move
+  /// in a widget test, so a wall-clock gate could not be tested at all.
+  bool _coolingDown = false;
+  Timer? _cooldownTimer;
+
   /// The hints are scheduled once per screen, even though
   /// [didChangeDependencies] runs again whenever the theme or text scale does.
   bool _tipsScheduled = false;
@@ -108,6 +116,12 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
         unawaited(_showTipsOnce());
       });
     }
+  }
+
+  @override
+  void dispose() {
+    _cooldownTimer?.cancel();
+    super.dispose();
   }
 
   /// Shows the four gestures the first time a tree is ever opened, then never
@@ -292,6 +306,74 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
       }
     });
     if (failure == null && !moreAncestors) unawaited(_checkDescendants());
+  }
+
+  /// Re-reads WikiTree for the tree on screen, as if the app had been killed and
+  /// the same person opened again - without having to kill it.
+  ///
+  /// Everything else in the app is served from the session cache on purpose, and
+  /// on a phone that has not been restarted that cache is always warm: an edit
+  /// somebody else makes to a profile while it is open stays invisible until the
+  /// app is restarted or the cached answer is evicted. This is the way out, and
+  /// the reload runs at the depths on screen so a tree the reader has grown comes
+  /// back the size it was.
+  ///
+  /// The wait afterwards applies only when the refresh worked: locking the button
+  /// for half a minute because the network dropped would punish the wrong thing.
+  Future<void> _refresh() async {
+    if (_busy || _coolingDown) return;
+    final l10n = AppLocalizations.of(context);
+
+    setState(() {
+      _busy = true;
+      _failure = null;
+    });
+
+    FocusBundle? loaded;
+    WikiTreeFailure? failure;
+    try {
+      loaded = await widget.repository.reload(
+        _bundle.focus.wikiTreeId,
+        ancestors: _ancestorDepth,
+        descendants: _descendantDepth,
+      );
+    } on WikiTreeFailure catch (error) {
+      failure = error;
+    } catch (error, stack) {
+      CrashReporter.record(error, stack, reason: 'tree-refresh');
+      failure = const ServerFailure();
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      _failure = failure;
+      if (loaded != null) {
+        _bundle = loaded;
+        // The people the walk through the family visited went with the discarded
+        // graph, so the trail starts again here - the state a restart leaves.
+        _history.clear();
+        _ancestorsExhausted = false;
+        _descendantsExhausted = false;
+        _hiddenDescendants = null;
+        _descendantCountMissing = false;
+        // The bottom row is made of new people, so it has never been asked about.
+        _checkedRow = null;
+        _coolingDown = true;
+        _rebuildLayoutIfNeeded();
+      }
+    });
+
+    if (loaded == null) return;
+
+    _cooldownTimer?.cancel();
+    _cooldownTimer = Timer(ApiConfig.refreshCooldown, () {
+      if (!mounted) return;
+      setState(() => _coolingDown = false);
+    });
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(l10n.refreshDone)));
+    unawaited(_checkDescendants());
   }
 
   /// The lowest row on screen: their children are exactly what a "more
@@ -589,6 +671,17 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
                       onPressed: _busy ? null : _share,
                       icon: const Icon(Icons.share_outlined),
                     ),
+                    const SizedBox(width: 8),
+                    // Beside share, not in the right-hand corner: that corner
+                    // belongs to the "more descendants" control, which is only
+                    // there when somebody is waiting below. Greyed out for half a
+                    // minute after a refresh so it cannot become a polling loop.
+                    IconButton.filledTonal(
+                      key: const ValueKey<String>('tree-refresh'),
+                      tooltip: l10n.refreshTooltip,
+                      onPressed: _busy || _coolingDown ? null : _refresh,
+                      icon: const Icon(Icons.refresh_rounded),
+                    ),
                     const Spacer(),
                     // ...and anything about the bottom at the bottom, on the
                     // right like its counterpart in the app bar.
@@ -598,7 +691,7 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
                         icon: Icons.expand_more,
                         label: descendantLabel,
                         onPressed: () => _loadMore(moreAncestors: false),
-                      )
+                      ),
                   ],
                 ),
               ),

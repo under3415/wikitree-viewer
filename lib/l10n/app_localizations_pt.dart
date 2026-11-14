@@ -100,6 +100,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get moreUnknown => 'Mais';
 
   @override
+  String get refreshTooltip => 'Obter os dados mais recentes do WikiTree';
+
+  @override
+  String get refreshDone => 'Atualizado do WikiTree';
+
+  @override
   String get shareTooltip => 'Compartilhar esta família';
 
   @override

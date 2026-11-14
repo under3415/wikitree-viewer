@@ -254,6 +254,18 @@ abstract class AppLocalizations {
   /// **'More'**
   String get moreUnknown;
 
+  /// Tooltip on the refresh button beside share on the family tree screen. It reloads the tree from WikiTree, then rests for half a minute.
+  ///
+  /// In en, this message translates to:
+  /// **'Get the latest from WikiTree'**
+  String get refreshTooltip;
+
+  /// Message after a refresh that worked: what is on screen is what WikiTree holds right now.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated from WikiTree'**
+  String get refreshDone;
+
   /// No description provided for @shareTooltip.
   ///
   /// In en, this message translates to:

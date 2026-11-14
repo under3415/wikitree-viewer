@@ -21,6 +21,10 @@ class _FakeApi implements WikiTreeApi {
   Map<String, List<int>?> childIds = const <String, List<int>?>{};
   final List<List<String>> probedKeys = <List<String>>[];
 
+  /// How many times the session was thrown away: the refresh button is the only
+  /// caller, so this is what proves a reload really went back to the API.
+  int invalidations = 0;
+
   @override
   Future<PeopleResponse> getPeople({
     required String key,
@@ -52,6 +56,9 @@ class _FakeApi implements WikiTreeApi {
     probedKeys.add(keys);
     return childIds;
   }
+
+  @override
+  void invalidate() => invalidations++;
 
   @override
   void close() {}
@@ -109,6 +116,21 @@ const Person _child = Person(
 final PeopleResponse _clemens = PeopleResponse(
   people: const <Person>[_samuel, _father, _mother, _child],
   resolvedId: 5185,
+);
+
+const Person _samuelCorrected = Person(
+  id: 5185,
+  wikiTreeId: 'Clemens-1',
+  firstName: 'Samuel',
+  middleName: 'Langhorne',
+  lastNameAtBirth: 'Clemens',
+  // The same fields as [_samuel], filled - so `quality` ties and the graph would
+  // keep the copy it already had. Only the value differs.
+  birthDate: '1835-12-01',
+  deathDate: '1910-04-21',
+  fatherId: 5186,
+  motherId: 5188,
+  privacyIsAtLeastPublic: true,
 );
 
 const Person _livingParent = Person(
@@ -348,5 +370,41 @@ void main() {
 
     repository.clear();
     expect(repository.graph.length, 0);
+  });
+
+  test('a refresh shows a correction the graph would have kept', () async {
+    // The graph merges a re-fetched person by preferring the richer copy and, on
+    // a tie, the copy that arrived first. A corrected birth date fills exactly the
+    // same fields as the wrong one, so a plain refetch would leave the error on
+    // screen - which is why a refresh throws the graph away instead.
+    final api = _FakeApi(<String, PeopleResponse>{'Clemens-1': _clemens});
+    final repository = WikiTreeRepository(api: api);
+    await repository.loadFocus('Clemens-1');
+
+    api.people['Clemens-1'] = const PeopleResponse(
+      people: <Person>[_samuelCorrected],
+      resolvedId: 5185,
+    );
+    await repository.reload('Clemens-1', ancestors: 3, descendants: 2);
+
+    expect(api.invalidations, 1, reason: 'the cache went first');
+    expect(repository.graph.byId(5185)?.birthDate, '1835-12-01');
+  });
+
+  test('a refresh that fails puts the tree it could not replace back', () async {
+    final api = _FakeApi(<String, PeopleResponse>{'Clemens-1': _clemens});
+    final repository = WikiTreeRepository(api: api);
+    await repository.loadFocus('Clemens-1');
+
+    api.people.remove('Clemens-1');
+    await expectLater(
+      repository.reload('Clemens-1', ancestors: 3, descendants: 2),
+      throwsA(isA<NotFoundFailure>()),
+    );
+
+    // The reader keeps what was on screen: a refresh that cannot reach WikiTree
+    // must not empty the tree.
+    expect(repository.graph.byId(5185), isNotNull);
+    expect(repository.graph.length, _clemens.people.length);
   });
 }

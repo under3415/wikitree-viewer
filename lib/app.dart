@@ -55,6 +55,23 @@ class WikiTreeViewerApp extends StatelessWidget {
       // The device language wins; every other language falls back to English.
       localizationsDelegates: _delegates,
       supportedLocales: AppLocalizations.supportedLocales,
+      // Flutter's own deep linking is switched off on both platforms (see
+      // AndroidManifest.xml and Info.plist), so a named push should never arrive.
+      // This is the net for one that does anyway: without a handler, a release
+      // build dies inside the framework's `onUnknownRoute!` - a real null check
+      // there, because asserts are compiled out - with "Null check operator used
+      // on a null value". That is the fatal exception Crashlytics collected from
+      // 1.0.5, where a link pushed its own path as a route name.
+      //
+      // The fallback is the first screen rather than a blank one: whatever the
+      // name was, the reader can paste the family code there. It is built without
+      // [links], a single-subscription stream the screen underneath already
+      // listens to.
+      onUnknownRoute: (settings) => MaterialPageRoute<void>(
+        settings: settings,
+        builder: (context) =>
+            LookupScreen(repository: repository, preferences: preferences),
+      ),
       home: LookupScreen(
         repository: repository,
         preferences: preferences,

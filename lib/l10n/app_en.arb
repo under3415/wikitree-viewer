@@ -69,6 +69,14 @@
   "@moreUnknown": {
     "description": "Label used when the count of people waiting could not be fetched."
   },
+  "refreshTooltip": "Get the latest from WikiTree",
+  "@refreshTooltip": {
+    "description": "Tooltip on the refresh button beside share on the family tree screen. It reloads the tree from WikiTree, then rests for half a minute."
+  },
+  "refreshDone": "Updated from WikiTree",
+  "@refreshDone": {
+    "description": "Message after a refresh that worked: what is on screen is what WikiTree holds right now."
+  },
   "shareTooltip": "Share this family",
   "shareSheetTitle": "Share this family",
   "shareWithApp": "Share with an app",

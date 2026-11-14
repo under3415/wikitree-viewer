@@ -25,6 +25,8 @@
   "treeTipsDismiss": "Entendido",
   "moreCount": "{count, plural, =1{1 más} other{{count} más}}",
   "moreUnknown": "Más",
+  "refreshTooltip": "Obtener los datos más recientes de WikiTree",
+  "refreshDone": "Actualizado desde WikiTree",
   "shareTooltip": "Compartir esta familia",
   "shareSheetTitle": "Compartir esta familia",
   "shareWithApp": "Compartir con una app",

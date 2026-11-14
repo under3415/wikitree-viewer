@@ -36,6 +36,9 @@ class _EmptyApi implements WikiTreeApi {
   }) async => <String, List<int>?>{for (final key in keys) key: const <int>[]};
 
   @override
+  void invalidate() {}
+
+  @override
   void close() {}
 }
 
@@ -84,6 +87,73 @@ class _FamilyApi implements WikiTreeApi {
   }) async => <String, List<int>?>{for (final key in keys) key: const <int>[]};
 
   @override
+  void invalidate() {}
+
+  @override
+  void close() {}
+}
+
+/// An API whose answer changes between calls, the way a profile does when
+/// somebody else edits it while the tree is open.
+///
+/// The correction fills exactly the same fields before and after, so the graph's
+/// "the richer copy wins" rule cannot see it: only a reload that starts from an
+/// empty graph does.
+class _EditingApi implements WikiTreeApi {
+  static const Person _hermann = Person(
+    id: 2,
+    wikiTreeId: 'Einstein-2',
+    firstName: 'Hermann',
+    lastNameAtBirth: 'Einstein',
+    birthDate: '1847-08-30',
+  );
+
+  /// Whether the edit has landed. It happens when the app asks for fresh data,
+  /// which is exactly the moment a cache-clearing refresh has to see it.
+  bool edited = false;
+
+  int invalidations = 0;
+
+  @override
+  void invalidate() {
+    invalidations++;
+    edited = true;
+  }
+
+  @override
+  Future<PeopleResponse> getPeople({
+    required String key,
+    int ancestors = 0,
+    int descendants = 0,
+  }) async {
+    final albert = Person(
+      id: 1,
+      wikiTreeId: 'Einstein-1',
+      firstName: edited ? 'Albertus' : 'Albert',
+      lastNameAtBirth: 'Einstein',
+      birthDate: edited ? '1879-03-15' : '1879-03-14',
+      deathDate: '1955-04-18',
+      fatherId: 2,
+    );
+    return PeopleResponse(
+      people: <Person>[albert, _hermann],
+      resolvedId: key == _hermann.wikiTreeId ? _hermann.id : albert.id,
+    );
+  }
+
+  @override
+  Future<RelativesResponse> getRelatives({
+    required List<String> keys,
+    bool siblings = true,
+    bool spouses = true,
+  }) async => const RelativesResponse(groups: <RelativeGroup>[]);
+
+  @override
+  Future<Map<String, List<int>?>> probeChildren({
+    required List<String> keys,
+  }) async => <String, List<int>?>{for (final key in keys) key: const <int>[]};
+
+  @override
   void close() {}
 }
 
@@ -116,10 +186,8 @@ class _HiddenParentApi implements WikiTreeApi {
     required String key,
     int ancestors = 0,
     int descendants = 0,
-  }) async => const PeopleResponse(
-    people: <Person>[_father, _son],
-    resolvedId: 1,
-  );
+  }) async =>
+      const PeopleResponse(people: <Person>[_father, _son], resolvedId: 1);
 
   @override
   Future<RelativesResponse> getRelatives({
@@ -135,6 +203,9 @@ class _HiddenParentApi implements WikiTreeApi {
     for (final key in keys)
       key: key == 'Nakarada-1' ? const <int>[2] : const <int>[],
   };
+
+  @override
+  void invalidate() {}
 
   @override
   void close() {}
@@ -196,6 +267,9 @@ class _DeepApi implements WikiTreeApi {
   }) async => <String, List<int>?>{for (final key in keys) key: const <int>[]};
 
   @override
+  void invalidate() {}
+
+  @override
   void close() {}
 }
 
@@ -249,6 +323,9 @@ class _BranchApi implements WikiTreeApi {
     for (final key in keys)
       key: key == 'Einstein-1' ? const <int>[4] : const <int>[],
   };
+
+  @override
+  void invalidate() {}
 
   @override
   void close() {}
@@ -307,6 +384,9 @@ class _SiblingApi implements WikiTreeApi {
     for (final key in keys)
       key: key == 'Tesla-3' ? const <int>[4] : const <int>[],
   };
+
+  @override
+  void invalidate() {}
 
   @override
   void close() {}
@@ -407,6 +487,9 @@ class _LongLineApi implements WikiTreeApi {
   };
 
   @override
+  void invalidate() {}
+
+  @override
   void close() {}
 }
 
@@ -479,6 +562,9 @@ class _PrivateApi implements WikiTreeApi {
   Future<Map<String, List<int>?>> probeChildren({
     required List<String> keys,
   }) async => <String, List<int>?>{for (final key in keys) key: null};
+
+  @override
+  void invalidate() {}
 
   @override
   void close() {}
@@ -643,7 +729,11 @@ void main() {
     await press.up();
     await tester.pumpAndSettle();
     expect(_fieldText(tester), 'Windsor-');
-    expect(hyphen, findsOneWidget, reason: 'the keys stay while the box has focus');
+    expect(
+      hyphen,
+      findsOneWidget,
+      reason: 'the keys stay while the box has focus',
+    );
 
     final underscore = find.byKey(
       const ValueKey<String>('lookup-insert-underscore'),
@@ -935,26 +1025,27 @@ void main() {
     );
   });
 
-  testWidgets('the Serbian first screen speaks Serbian and shows Serbian codes', (
-    tester,
-  ) async {
-    tester.platformDispatcher.localesTestValue = <Locale>[const Locale('sr')];
-    addTearDown(tester.platformDispatcher.clearLocalesTestValue);
+  testWidgets(
+    'the Serbian first screen speaks Serbian and shows Serbian codes',
+    (tester) async {
+      tester.platformDispatcher.localesTestValue = <Locale>[const Locale('sr')];
+      addTearDown(tester.platformDispatcher.clearLocalesTestValue);
 
-    await tester.pumpWidget(_app());
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(_app());
+      await tester.pumpAndSettle();
 
-    expect(find.text('Prikaži porodično stablo'), findsOneWidget);
-    expect(find.text('Probajte'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey<String>('lookup-example-Karađorđević-13')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('lookup-example-Tesla-1')),
-      findsOneWidget,
-    );
-  });
+      expect(find.text('Prikaži porodično stablo'), findsOneWidget);
+      expect(find.text('Probajte'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('lookup-example-Karađorđević-13')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('lookup-example-Tesla-1')),
+        findsOneWidget,
+      );
+    },
+  );
 
   testWidgets('every Serbian script setting gets the Serbian wording', (
     tester,
@@ -1040,6 +1131,26 @@ void main() {
     expect(find.text('Albert Einstein'), findsOneWidget);
   });
 
+  testWidgets('a route pushed by the platform cannot crash the app', (
+    tester,
+  ) async {
+    // What Android did to 1.0.5: the engine hands the link to the framework,
+    // Flutter's own deep-link handler pushes the URI's path as a route *name*, no
+    // route matches, and `onUnknownRoute!` in the framework is a real null check
+    // in a release build. Three devices reported it.
+    await tester.pumpWidget(_app());
+
+    await tester.binding.handlePushRoute(
+      'https://under3415.github.io/wikitree-viewer/open/?id=Einstein-1',
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    // The fallback is the first screen, so the reader can still paste the code.
+    expect(find.text('Show family tree'), findsWidgets);
+    expect(find.byType(TreeView), findsNothing);
+  });
+
   testWidgets('the share sheet copies everything a reader needs', (
     tester,
   ) async {
@@ -1101,6 +1212,68 @@ void main() {
     // Wide open space on the right is where the "more descendants" control
     // goes, so the row has to reach the edges.
     expect(share.left, 12);
+  });
+
+  testWidgets('refresh shows an edit made while the tree was open', (
+    tester,
+  ) async {
+    // The session cache is deliberately warm for the whole run of the app, so an
+    // edit somebody else makes to the profile on screen stays invisible until the
+    // app is restarted. The refresh button is the way out of that.
+    final api = _EditingApi();
+    await _openTree(tester, api: api);
+    expect(find.text('Albert Einstein'), findsOneWidget);
+    expect(find.text('Albertus Einstein'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey<String>('tree-refresh')));
+    await tester.pumpAndSettle();
+
+    expect(api.invalidations, 1);
+    expect(find.text('Albertus Einstein'), findsOneWidget);
+    expect(find.text('Updated from WikiTree'), findsOneWidget);
+  });
+
+  testWidgets('the refresh button rests for half a minute', (tester) async {
+    final api = _EditingApi();
+    await _openTree(tester, api: api);
+    final refresh = find.byKey(const ValueKey<String>('tree-refresh'));
+    expect(tester.widget<IconButton>(refresh).onPressed, isNotNull);
+
+    await tester.tap(refresh);
+    await tester.pumpAndSettle();
+    expect(tester.widget<IconButton>(refresh).onPressed, isNull);
+
+    // One second short of the wait that keeps the button from becoming polling.
+    await tester.pump(ApiConfig.refreshCooldown - const Duration(seconds: 1));
+    expect(tester.widget<IconButton>(refresh).onPressed, isNull);
+
+    await tester.pump(const Duration(seconds: 1));
+    expect(tester.widget<IconButton>(refresh).onPressed, isNotNull);
+
+    await tester.tap(refresh);
+    await tester.pumpAndSettle();
+    expect(api.invalidations, 2, reason: 'the wait is over, so it asks again');
+  });
+
+  testWidgets('a refresh starts the walk through the family again', (
+    tester,
+  ) async {
+    final api = _EditingApi();
+    await _openTree(tester, api: api);
+    final back = find.byKey(const ValueKey<String>('tree-back'));
+
+    await tester.tap(find.byKey(TreeView.nodeKey(2)));
+    await tester.pumpAndSettle();
+    expect(tester.widget<IconButton>(back).onPressed, isNotNull);
+
+    await tester.tap(find.byKey(const ValueKey<String>('tree-refresh')));
+    await tester.pumpAndSettle();
+
+    // The people the walk had visited went with the discarded graph, so there is
+    // nowhere to step back to - the state a restart leaves.
+    expect(tester.widget<IconButton>(back).onPressed, isNull);
+    expect(find.text('Hermann Einstein'), findsOneWidget);
+    expect(api.invalidations, 1);
   });
 
   testWidgets('the tree hints explain the gestures on the first tree only', (
@@ -1290,10 +1463,7 @@ void main() {
     expect(tester.widget<IconButton>(back).onPressed, isNull);
 
     // X on the left, the arrow to its right, as the corner reads.
-    expect(
-      tester.getCenter(close).dx,
-      lessThan(tester.getCenter(back).dx),
-    );
+    expect(tester.getCenter(close).dx, lessThan(tester.getCenter(back).dx));
 
     await tester.tap(find.byKey(TreeView.nodeKey(2)));
     await tester.pumpAndSettle();
@@ -1339,7 +1509,11 @@ void main() {
       taps++;
     }
 
-    expect(taps, 3, reason: 'depth 2 -> 4 -> 6 -> 8, one tap per two generations');
+    expect(
+      taps,
+      3,
+      reason: 'depth 2 -> 4 -> 6 -> 8, one tap per two generations',
+    );
     // The last person in the line is on screen, so the tree reached the end of it
     // rather than a limit: nobody is left stuck above people they cannot see.
     expect(find.byKey(TreeView.nodeKey(16)), findsOneWidget);

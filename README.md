@@ -52,6 +52,11 @@ in place and tested.
   the one gesture everybody already knows, and the view snaps back on its own if
   a drag ever leaves the tree out of sight.
 - **Share** (bottom left) sends this family to somebody else - see below.
+- **Refresh** (bottom left, beside share) re-reads this tree from WikiTree. The
+  session cache is what makes tapping around free, and it also means an edit
+  somebody else makes to a profile while it is open stays invisible until the app
+  is restarted; this is the way out of that. It rests for 30 seconds after each
+  use - see *How the app talks to WikiTree*.
 - Each box shows the person's WikiTree 75-pixel thumbnail, or their initials
   when there is no photo.
 
@@ -158,6 +163,18 @@ iOS needs the matching piece when that build is made:
 `apple-app-site-association` at the same host plus the
 `com.apple.developer.associated-domains` entitlement
 (`applinks:under3415.github.io`).
+
+Flutter has a deep-link handler of its own, and it is **switched off** on purpose:
+`flutter_deeplinking_enabled` is `false` in `AndroidManifest.xml` and
+`FlutterDeepLinkingEnabled` is false in `Info.plist`, because `app_links` reads
+the links. Left on - which is the Android default - a link is handed to the
+framework a second time as a *named route* (`pushNamed('/wikitree-viewer/open/…')`),
+nothing matches that name, and release builds died inside
+`WidgetsApp._onUnknownRoute` with `Null check operator used on a null value`
+(Crashlytics, 1.0.5, three devices). Flutter's deep-linking page says to opt out
+for exactly this case: a plugin handling links itself. `MaterialApp.onUnknownRoute`
+in `lib/app.dart` is the belt to that braces - it answers with the first screen,
+so a stray named push can never reach the framework's null check again.
 
 ### Going further back or forward
 
@@ -436,6 +453,20 @@ limited much more aggressively by WikiTree. The API allows 200 requests/minute
 and 4000/hour; the client keeps a minimum gap between requests and caches
 responses in memory for the session.
 
+That cache is also why an edit somebody else makes while a tree is open stays
+invisible - nothing asks WikiTree again. The round arrow beside the share button
+is the way out: it throws the session away for that tree, cached answers **and**
+the people built from them, then loads the person again at the depths on screen -
+what killing the app and reopening them would do. Dropping the graph rather than
+merging into it is the whole point: `Person.mergedWith` prefers the richer copy
+and, on a tie, the older one, so a corrected birth date (same fields filled,
+different values) would otherwise survive a refetch untouched
+(`WikiTreeRepository.reload`). A refresh that fails puts the old graph back and
+leaves the screen alone; one that works rests the button for 30 seconds
+(`ApiConfig.refreshCooldown`), so it cannot become a polling loop - at most three
+requests per tap, 360 an hour against WikiTree's 4000, and WikiTree counts those
+limits per user rather than per app.
+
 One starting person costs **two** requests:
 
 1. `getPeople` with `ancestors`/`descendants` - the family cone.
@@ -510,7 +541,9 @@ only wired implementation; a disk-backed one can be added behind the same
 interface if WikiTree grants permission.
 
 What that means in practice: navigating within a session costs no requests, and
-a cold start costs two small requests.
+a cold start costs two small requests. The refresh button on the tree screen is
+the one exception - it empties `SessionResponseCache` and rebuilds the graph for
+the tree on screen (see *How the app talks to WikiTree*).
 
 ### Content rules the app follows
 

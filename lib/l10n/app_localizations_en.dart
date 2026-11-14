@@ -99,6 +99,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get moreUnknown => 'More';
 
   @override
+  String get refreshTooltip => 'Get the latest from WikiTree';
+
+  @override
+  String get refreshDone => 'Updated from WikiTree';
+
+  @override
   String get shareTooltip => 'Share this family';
 
   @override

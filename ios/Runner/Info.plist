@@ -58,6 +58,12 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<!-- Links are read by the app_links plugin (lib/core/deep_links.dart), not by
+	     Flutter's own deep-link handler: with that handler on, a link arrives as a
+	     route push for a name the app does not have, which crashed release builds
+	     in WidgetsApp._onUnknownRoute. Same reasoning as the Android manifest. -->
+	<key>FlutterDeepLinkingEnabled</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

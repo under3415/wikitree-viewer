@@ -78,6 +78,15 @@ abstract interface class WikiTreeApi {
   /// from "no children" and must not be read as one.
   Future<Map<String, List<int>?>> probeChildren({required List<String> keys});
 
+  /// Forgets everything answered this session, so the next request really is a
+  /// request.
+  ///
+  /// Only the manual refresh uses this. The cache is what makes tapping back and
+  /// forth free, and it is memory only - WikiTree's app policies do not allow
+  /// profile data to outlive the session - so dropping it costs nothing but the
+  /// requests it has already saved.
+  void invalidate();
+
   void close();
 }
 
@@ -218,6 +227,9 @@ class HttpWikiTreeApi implements WikiTreeApi {
     }
     return children;
   }
+
+  @override
+  void invalidate() => _cache.clear();
 
   @override
   void close() {

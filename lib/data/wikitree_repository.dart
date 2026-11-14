@@ -44,6 +44,39 @@ class WikiTreeRepository {
 
   FamilyGraph get graph => _graph;
 
+  /// Loads [input] again after forgetting the whole session: the answers WikiTree
+  /// gave and the people built from them, as if the app had just been started.
+  ///
+  /// This is the manual refresh, and the only path in the app that throws data
+  /// away. Everything else keeps the graph because it only ever grows - which is
+  /// also why a refresh has to drop it: the graph holds the copy that arrived
+  /// first, and [Person.mergedWith] prefers the richer copy rather than the newer
+  /// one, so a corrected birth date (same fields filled, different values) would
+  /// survive a refetch untouched. An empty graph has nothing to merge with.
+  ///
+  /// The depths are passed in rather than defaulted, so a tree the reader has
+  /// grown comes back the size it was. A failed reload puts the previous graph
+  /// back: a refresh that cannot reach WikiTree must not empty the screen.
+  Future<FocusBundle> reload(
+    String input, {
+    required int ancestors,
+    required int descendants,
+  }) async {
+    api.invalidate();
+    final previous = _graph;
+    clear();
+    try {
+      return await loadFocus(
+        input,
+        ancestors: ancestors,
+        descendants: descendants,
+      );
+    } catch (_) {
+      _graph = previous;
+      rethrow;
+    }
+  }
+
   Future<FocusBundle> loadFocus(
     String input, {
     int? ancestors,
@@ -104,10 +137,7 @@ class WikiTreeRepository {
 
     WikiTreeFailure? failure;
     for (var start = 0; start < keys.length; start += ApiConfig.keyBatchSize) {
-      final batch = keys
-          .skip(start)
-          .take(ApiConfig.keyBatchSize)
-          .join(',');
+      final batch = keys.skip(start).take(ApiConfig.keyBatchSize).join(',');
       try {
         final response = ancestors
             ? await api.getPeople(key: batch, ancestors: generations)

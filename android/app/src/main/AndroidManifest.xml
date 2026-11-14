@@ -25,6 +25,17 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+            <!-- Flutter's own deep-link handler is switched off, because the app
+                 handles links itself with the app_links plugin (lib/core/deep_links.dart).
+                 Left on, which is the default, Android hands the engine the incoming
+                 link and WidgetsApp pushes the URI's path as a route name; no such
+                 route exists, so release builds died in `WidgetsApp._onUnknownRoute`
+                 with "Null check operator used on a null value" (Crashlytics, 1.0.5).
+                 Flutter's deep-linking page says to opt out for exactly this case. -->
+            <meta-data
+              android:name="flutter_deeplinking_enabled"
+              android:value="false"
+              />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>

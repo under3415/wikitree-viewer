@@ -218,14 +218,12 @@ void main() {
       final revision = linkGraph.linkRevision;
       linkGraph.recordChild(parentId: father.id, childId: son.id);
 
-      expect(
-        linkGraph.childrenOf(father).map((person) => person.id),
-        <int>[son.id],
-      );
-      expect(
-        linkGraph.parentsOf(son).map((person) => person.id),
-        <int>[father.id],
-      );
+      expect(linkGraph.childrenOf(father).map((person) => person.id), <int>[
+        son.id,
+      ]);
+      expect(linkGraph.parentsOf(son).map((person) => person.id), <int>[
+        father.id,
+      ]);
       // Somebody already in memory can now be drawn, which is what the tree
       // watches for to lay itself out again.
       expect(linkGraph.linkRevision, revision + 1);
@@ -246,10 +244,9 @@ void main() {
       expect(linkGraph.childrenOf(father), isEmpty);
 
       linkGraph.add(son);
-      expect(
-        linkGraph.childrenOf(father).map((person) => person.id),
-        <int>[son.id],
-      );
+      expect(linkGraph.childrenOf(father).map((person) => person.id), <int>[
+        son.id,
+      ]);
     });
 
     test('finds the other half of the union through the recorded link', () {

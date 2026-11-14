@@ -25,6 +25,8 @@
   "treeTipsDismiss": "Razumem",
   "moreCount": "{count, plural, one{još {count} osoba} few{još {count} osobe} other{još {count} osoba}}",
   "moreUnknown": "Više",
+  "refreshTooltip": "Preuzmi najnovije podatke sa WikiTree-a",
+  "refreshDone": "Ažurirano sa WikiTree-a",
   "shareTooltip": "Podeli ovu porodicu",
   "shareSheetTitle": "Podeli ovu porodicu",
   "shareWithApp": "Podeli preko aplikacije",
