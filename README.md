@@ -561,9 +561,21 @@ forced onto both. Serbian uses all three of its shapes: `još 1 osoba`,
 `još 3 osobe`, `još 5 osoba`.
 
 Serbian is written in Latin here, the same letters its family codes use. `intl`
-answers plain `sr` in Cyrillic, so month names come from its `sr_Latn` data
-(`_intlLocale` in `lib/util/dates.dart`) and one screen never mixes the two
-scripts.
+answers plain `sr` in Cyrillic - and `sr_RS` too, since it drops the region - so
+month names always come from its `sr_Latn` data (`_intlLocale` in
+`lib/util/dates.dart`) and one screen never mixes the two scripts.
+
+Both Serbian tags are declared to the platforms, `sr` **and** `sr-Latn`, in
+`locales_config.xml` and `CFBundleLocalizations`. The tag decides which phones
+reach the app; the ARB decides the script. A phone set to Serbian in Cyrillic -
+the default in Serbia - reports `sr`, and declaring only `sr-Latn` is what would
+send that reader to English. It gets the Latin wording, which is the honest answer
+while there is one translation: nothing in the app changes with the phone's
+script setting. Adding a Cyrillic translation later means turning `app_sr.arb`
+into the Cyrillic text, adding `app_sr_Latn.arb` for these Latin strings, and
+pointing the `sr` branch of `_intlLocale` at `sr`; the platform files already
+list both tags, and the tests already cover `sr`, `sr-Cyrl`, `sr-Latn` and
+`sr-RS`.
 
 The two example codes on the first screen follow the language as well
 (`AppInfo.examplesFor`, `lib/core/constants.dart`): Goethe and van Beethoven in
@@ -573,8 +585,26 @@ Kennedys in English. Every one of them was opened against the live API before it
 was written down: Goethe is `Goethe-22` because there is no `Goethe-1`, and Victor
 Hugo is `Hugo-215` because `Hugo-216` is a different family.
 
-To add a language, copy `app_en.arb` to `app_<code>.arb`, translate the values,
-run `flutter gen-l10n`, and it appears in `supportedLocales`.
+To add a language, copy `app_en.arb` to `app_<code>.arb`, translate the values, and
+run `flutter gen-l10n`; it appears in `supportedLocales`. Three more places then
+need the code, or the language stays invisible outside the app itself:
+
+- `android/app/src/main/res/xml/locales_config.xml` - what tells Android (and the
+  Play Store, which reads the bundle) that the app speaks it. Dart strings travel
+  inside the Flutter assets, not in `res/values-<code>/`, so without this file the
+  bundle looks English-only however many languages ship. It also gives Android 13+
+  *Settings → Apps → WikiTree Viewer → Language*.
+- `ios/Runner/Info.plist` -> `CFBundleLocalizations` - the same declaration for
+  iOS, and what the App Store reads.
+- The **store listing**, which is separate from the bundle and never travels with
+  it: Play Console → *Store listing → Manage translations → Select languages*.
+  Uploading a bundle does not add a listing language, and a Serbian listing only
+  appears once Serbian is selected there. The text to paste is in
+  `store/listings.md`.
+
+Serbian is the worked example of all four: `app_sr.arb`, both tags (`sr` and
+`sr-Latn`) in the two platform files, and a `## Serbian (sr)` block in
+`store/listings.md`.
 
 ## The emblem and the app icon
 

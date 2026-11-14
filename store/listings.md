@@ -11,9 +11,24 @@ request. If you would rather keep the brackets off, use plain `WikiTree Viewer`
 (16 characters) and rely on the first line of the full description.
 
 Locales match the app's six languages: `en-US`, `de-DE`, `es-ES`, `pt-BR`,
-`fr-FR`, `sr-RS` (Serbian in Latin script). If you prefer European Portuguese,
-change "compartilhar"/"aparelho" to "partilhar"/"telemóvel" and name the locale
-`pt-PT`.
+`fr-FR`, `sr` (Play's own entry for Serbian - the picker has no `sr-RS`, and the
+script is not part of the tag; the app declares `sr-Latn` on Android and iOS). If
+you prefer European Portuguese, change "compartilhar"/"aparelho" to
+"partilhar"/"telemóvel" and name the locale `pt-PT`.
+
+**Play does not learn any of this from the bundle.** An app bundle carries code
+and in-app strings; the store listing is separate text that only exists in the
+console. A new language therefore needs two independent steps, and the second one
+is easy to forget:
+
+1. *App*: `lib/l10n/app_<code>.arb`, `supportedLocales`, `locales_config.xml`
+   (Android) and `CFBundleLocalizations` (iOS) - see README, *Languages*. Without
+   the two platform files the app is translated but the bundle still looks
+   English-only, which is what the Play listing shows.
+2. *Listing*: Play Console → *Store listing → Manage translations → Select
+   languages* → tick the language → *Apply*, then paste the block below into the
+   three fields that appeared. Selecting languages only creates empty fields; the
+   listing stays English until they are filled in and the release is published.
 
 ---
 
@@ -304,10 +319,12 @@ que vous voyez ici est celui que la communauté entretient là-bas.
 
 ---
 
-## Serbian (sr-RS)
+## Serbian (sr)
 
-Written in Latin script, like the app. Play accepts `sr-RS` for both scripts and
-picks the one the text uses.
+Written in Latin script, like the app. Play has a single Serbian entry (`sr`) and
+takes the script from the text itself, so there is nothing to choose. The app
+declares both `sr` and `sr-Latn` to Android and iOS, so phones set to Cyrillic
+reach this text too - that is one listing for one app, not two.
 
 **Title** (28/30)
 

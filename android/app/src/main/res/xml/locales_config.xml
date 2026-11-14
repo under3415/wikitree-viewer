@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The languages this app is translated into.
+
+     The Dart side is invisible to the platform: the words live in
+     `lib/l10n/app_<code>.arb` and end up inside the Flutter assets, not in
+     `res/values-<code>/`. To Android - and to the Play Store, which reads the
+     bundle - the app therefore looked English-only no matter how many languages
+     `supportedLocales` carried. This file is the declaration it was missing.
+
+     Two things follow from it: Android 13 and later offer
+     Settings > Apps > WikiTree Viewer > Language, and Play has something to
+     report under the app's languages. The *listing* text is separate again and
+     lives only in Play Console - see `store/listings.md`.
+
+     `sr` and `sr-Latn` are both listed on purpose. The tag says which device
+     languages reach the app; the ARB says which script is drawn. Plain `sr`
+     means Cyrillic in BCP 47, and a phone set to Serbian (Cyrillic) - the
+     default in Serbia - reports `sr`, so leaving it out is what would send that
+     reader to English. Both tags currently resolve to the same Latin
+     translation (`app_sr.arb`); the day a Cyrillic translation is added,
+     `app_sr.arb` becomes it and `app_sr_Latn.arb` keeps the Latin text, and this
+     file needs no change. -->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="en" />
+    <locale android:name="de" />
+    <locale android:name="es" />
+    <locale android:name="fr" />
+    <locale android:name="pt" />
+    <locale android:name="sr" />
+    <locale android:name="sr-Latn" />
+</locale-config>

@@ -956,6 +956,39 @@ void main() {
     );
   });
 
+  testWidgets('every Serbian script setting gets the Serbian wording', (
+    tester,
+  ) async {
+    // Both Serbian tags are declared to Android and iOS (`sr` and `sr-Latn`), and
+    // a phone in Serbia usually reports `sr` or `sr-RS`. They all have to reach
+    // app_sr.arb - one translation, Latin script - instead of falling back to
+    // English, which is the whole reason both tags are declared.
+    addTearDown(tester.platformDispatcher.clearLocalesTestValue);
+    for (final locale in <Locale>[
+      const Locale('sr'),
+      const Locale.fromSubtags(languageCode: 'sr', scriptCode: 'Cyrl'),
+      const Locale.fromSubtags(languageCode: 'sr', scriptCode: 'Latn'),
+      const Locale.fromSubtags(languageCode: 'sr', countryCode: 'RS'),
+    ]) {
+      tester.platformDispatcher.localesTestValue = <Locale>[locale];
+
+      await tester.pumpWidget(_app());
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Prikaži porodično stablo'),
+        findsOneWidget,
+        reason: '$locale',
+      );
+      expect(
+        find.byKey(const ValueKey<String>('lookup-example-Karađorđević-13')),
+        findsOneWidget,
+        reason: '$locale',
+      );
+      expect(find.text('Show family tree'), findsNothing, reason: '$locale');
+    }
+  });
+
   testWidgets('a code that is not found suggests checking it', (tester) async {
     await tester.pumpWidget(_app());
 

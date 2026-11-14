@@ -77,10 +77,20 @@ String _shortMonth(String locale, int month) {
 
 /// The locale to hand to intl for [locale].
 ///
-/// Serbian is written in two scripts, and intl answers plain `sr` in Cyrillic.
-/// The app writes Serbian in Latin - the same letters its family codes use - so
-/// the month names come from `sr_Latn` and one screen never mixes the two.
-String _intlLocale(String locale) => locale == 'sr' ? 'sr_Latn' : locale;
+/// intl spells locales with underscores while platform tags use dashes, so a tag
+/// like `pt-BR` is normalised first: without it there is no data to find and the
+/// fallback would quietly be English.
+///
+/// Serbian is written in two scripts and intl answers plain `sr` in Cyrillic -
+/// and `sr_RS`, which drops the region, answers in Cyrillic too. The app has one
+/// Serbian translation and it is Latin, the letters its family codes use, so every
+/// Serbian tag asks for `sr_Latn` and one screen never mixes the two scripts.
+/// When a Cyrillic translation is added, the Cyrillic branch asks for `sr` here.
+String _intlLocale(String locale) {
+  final normalised = locale.replaceAll('-', '_');
+  if (normalised == 'sr' || normalised.startsWith('sr_')) return 'sr_Latn';
+  return normalised;
+}
 
 /// Age in years at death, when both years are known and plausible.
 ///

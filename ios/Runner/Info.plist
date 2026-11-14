@@ -6,6 +6,27 @@
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<!-- The languages the app is translated into. The words themselves live in
+	     lib/l10n/app_<code>.arb and travel inside the Flutter assets, so without
+	     this list iOS believes the app is English-only: the App Store shows one
+	     language, and Settings > WikiTree Viewer never offers a language. Keep it
+	     in step with AppLocalizations.supportedLocales and with
+	     android/app/src/main/res/xml/locales_config.xml.
+
+	     `sr` and `sr-Latn` are both here on purpose: the tag decides which device
+	     languages reach the app, the ARB decides the script. A phone set to
+	     Serbian (Cyrillic) reports `sr`, and leaving it out is what would send that
+	     reader to English; both tags currently show the same Latin translation. -->
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>de</string>
+		<string>es</string>
+		<string>fr</string>
+		<string>pt</string>
+		<string>sr</string>
+		<string>sr-Latn</string>
+	</array>
 	<key>CFBundleDisplayName</key>
 	<string>WikiTree Viewer</string>
 	<key>CFBundleExecutable</key>

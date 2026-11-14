@@ -135,6 +135,18 @@ void main() {
         // Latin, and plain `sr` would answer in Cyrillic.
         'sr': 'mar 1835',
       });
+
+      // A tag that names its own script has to reach the same Latin data.
+      // `sr-Latn` arrives with a dash from platform code and would otherwise find
+      // no month data at all - which the fallback would quietly answer in English.
+      final serbian = await loadLocalizations('sr');
+      for (final tag in <String>['sr-Latn', 'sr_Latn', 'sr-Latn-RS', 'sr-RS']) {
+        expect(
+          textFor(serbian, tag).longDate('1835-03-00'),
+          'mar 1835',
+          reason: tag,
+        );
+      }
     });
 
     test('a full date keeps its day and year', () async {
