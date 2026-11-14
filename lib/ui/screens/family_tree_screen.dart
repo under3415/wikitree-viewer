@@ -58,15 +58,28 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
   /// view can say "that is all" instead of "we have not looked".
   bool _descendantsExhausted = false;
 
+  /// The same for the top: asking for more ancestors brought nobody new, so the
+  /// line really does end there (their parents are recorded but private, say).
+  bool _ancestorsExhausted = false;
+
   /// How many people are recorded below the bottom row, once WikiTree has been
   /// asked. `null` means the answer has not arrived yet.
   int? _hiddenDescendants;
 
-  /// A failed look is not proof that nobody is there, so the button stays.
-  bool _descendantCheckFailed = false;
+  /// No exact count came back - either the look failed, or the bottom row was too
+  /// wide to ask about. Either way there is no proof that nobody is there, so the
+  /// button stays and says "More" instead of a number.
+  bool _descendantCountMissing = false;
 
   /// The row [_hiddenDescendants] describes, so the same row is not asked twice.
   String? _checkedRow;
+
+  /// How many people a "how many are below?" probe may cover.
+  ///
+  /// The probe asks WikiTree about every person on the bottom row in one request.
+  /// Past this many the exact number is not worth the request, and the pill says
+  /// "More" instead - it can still be tapped, which is the part that matters.
+  static const int _probeLimit = 40;
 
   /// Where the user has been: back walks out of the tree one person at a time.
   final List<_TreeStop> _history = <_TreeStop>[];
@@ -151,8 +164,9 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
         _rememberWhereWeWere();
         _bundle = loaded;
         _descendantsExhausted = false;
+        _ancestorsExhausted = false;
         _hiddenDescendants = null;
-        _descendantCheckFailed = false;
+        _descendantCountMissing = false;
         _rebuildLayoutIfNeeded();
       }
       _busy = false;
@@ -183,14 +197,12 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     _restore(_history.removeLast());
   }
 
-  /// Home jumps straight back to the person the tree was opened on, however far
-  /// the walk has wandered.
-  void _goHome() {
-    if (_history.isEmpty) return;
-    final origin = _history.first;
-    _history.clear();
-    _restore(origin);
-  }
+  /// Leaves the tree entirely, the way the X in the corner promises.
+  ///
+  /// Popped imperatively rather than through [PopScope]: back is a step in the
+  /// walk through the family and only leaves the tree when there is nowhere left
+  /// to go, while this button leaves it from wherever the walk happens to be.
+  void _close() => Navigator.of(context).pop();
 
   /// Puts a remembered stop back on screen, answers and all.
   void _restore(_TreeStop stop) {
@@ -201,7 +213,7 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
       _descendantDepth = stop.descendantDepth;
       _hiddenDescendants = stop.hiddenDescendants;
       _descendantsExhausted = stop.descendantsExhausted;
-      _descendantCheckFailed = false;
+      _descendantCountMissing = false;
       _failure = null;
       _rebuildLayoutIfNeeded();
       // This row was already looked at, so its answer is still good - unless it
@@ -213,17 +225,21 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     if (!answered) unawaited(_checkDescendants());
   }
 
-  /// One more generation, in the direction the user asked for.
+  /// Grows the tree by two generations in the direction the user asked for.
   ///
-  /// Growth is on demand rather than "load everything": every extra generation
-  /// can double the number of people, and a tree more than a few generations
-  /// deep is unreadable on a phone even zoomed out.
+  /// Only the new part is fetched: the two generations just beyond the row on the
+  /// screen, from that row, in batches small enough for one request. Asking the
+  /// whole cone again at the deeper depth would send the entire tree on every tap
+  /// and eventually outgrow what WikiTree answers in one go.
   Future<void> _loadMore({required bool moreAncestors}) async {
     if (_busy) return;
-    final ancestors = moreAncestors ? _ancestorDepth + 1 : _ancestorDepth;
-    final descendants = moreAncestors ? _descendantDepth : _descendantDepth + 1;
-    if (ancestors > ApiConfig.maxAncestorDepth) return;
-    if (descendants > ApiConfig.maxDescendantDepth) return;
+    final ancestors = moreAncestors
+        ? _ancestorDepth + ApiConfig.growthStep
+        : _ancestorDepth;
+    final descendants = moreAncestors
+        ? _descendantDepth
+        : _descendantDepth + ApiConfig.growthStep;
+    final edge = moreAncestors ? _topRow : _bottomRow;
 
     setState(() {
       _busy = true;
@@ -231,41 +247,48 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     });
 
     final shownBefore = _drawnIds.length;
-    FocusBundle? loaded;
+    var grew = true;
     WikiTreeFailure? failure;
     try {
-      loaded = await widget.repository.loadFocus(
-        _bundle.focus.wikiTreeId,
-        ancestors: ancestors,
-        descendants: descendants,
-      );
+      await widget.repository.grow(edge, ancestors: moreAncestors);
     } on WikiTreeFailure catch (error) {
       failure = error;
+      grew = false;
     } catch (error, stack) {
       CrashReporter.record(error, stack, reason: 'tree-deeper');
       failure = const ServerFailure();
+      grew = false;
     }
 
     if (!mounted) return;
     setState(() {
       _busy = false;
       _failure = failure;
-      if (loaded != null) {
+      if (grew) {
         _ancestorDepth = ancestors;
         _descendantDepth = descendants;
-        _bundle = loaded;
+        _bundle = FocusBundle(
+          focus: _bundle.focus,
+          graph: widget.repository.graph,
+          ancestorDepth: ancestors,
+          descendantDepth: descendants,
+        );
         if (!moreAncestors) {
           // The bottom row is about to change, so its count is stale.
           _hiddenDescendants = null;
-          _descendantCheckFailed = false;
+          _descendantCountMissing = false;
         }
         _rebuildLayoutIfNeeded();
       }
-      // Nobody new on screen means asking again would change nothing.
-      if (failure == null &&
-          !moreAncestors &&
-          _drawnIds.length == shownBefore) {
-        _descendantsExhausted = true;
+      // Nobody new on screen means asking again would change nothing, however
+      // many generations were asked for. This is what ends a line - not a limit on
+      // how far the tree may grow.
+      if (failure == null && _drawnIds.length == shownBefore) {
+        if (moreAncestors) {
+          _ancestorsExhausted = true;
+        } else {
+          _descendantsExhausted = true;
+        }
       }
     });
     if (failure == null && !moreAncestors) unawaited(_checkDescendants());
@@ -273,9 +296,24 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
 
   /// The lowest row on screen: their children are exactly what a "more
   /// descendants" tap would fetch, so they decide whether that button exists.
+  ///
+  /// Only people below the focus count. When the focus has no children of its
+  /// own the lowest row is the focus row, which also holds brothers, sisters and
+  /// in-laws: counting *their* children offered "2 more" under Nikola Tesla -
+  /// who has no descendants - and growing the tree could only ever add nothing.
+  /// The focus itself is the one person on that row whose children would appear.
   List<Person> get _bottomRow => <Person>[
     for (final node in _layout.nodes)
-      if (node.generation == _layout.minGeneration) node.person,
+      if (node.generation == _layout.minGeneration &&
+          (node.generation < 0 || node.isFocus))
+        node.person,
+  ];
+
+  /// The top row on screen: their parents are exactly what a "more ancestors" tap
+  /// would fetch.
+  List<Person> get _topRow => <Person>[
+    for (final node in _layout.nodes)
+      if (node.generation == _layout.maxGeneration) node.person,
   ];
 
   /// Everybody on screen, so a probe can tell "below the tree" from "already
@@ -297,8 +335,19 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     if (signature == _checkedRow) return;
     _checkedRow = signature;
 
+    // A wide row would need one key per person in a single request, for a number
+    // nobody needs. "More" is enough: the pill can still be tapped.
+    if (row.length > _probeLimit) {
+      setState(() {
+        _hiddenDescendants = null;
+        _descendantCountMissing = true;
+      });
+      return;
+    }
+
     int? count;
     var failed = false;
+    final revision = widget.repository.graph.linkRevision;
     try {
       count = await widget.repository.hiddenChildCount(row, shown: _drawnIds);
     } on WikiTreeFailure {
@@ -309,10 +358,26 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     }
 
     if (!mounted || signature != _checkedRow) return;
+    // The probe can also hand the graph a link it could not have otherwise: the
+    // children of a semi-private person name their parent as "-3", while the
+    // parent's own `Children` list names them. If that attached somebody already
+    // in memory, the rows have changed and the tree has to be drawn again - and
+    // the row just asked about is no longer the bottom one.
+    final attached = widget.repository.graph.linkRevision != revision;
     setState(() {
       _hiddenDescendants = count;
-      _descendantCheckFailed = failed;
+      _descendantCountMissing = failed;
+      if (attached) {
+        _bundle = FocusBundle(
+          focus: _bundle.focus,
+          graph: widget.repository.graph,
+          ancestorDepth: _ancestorDepth,
+          descendantDepth: _descendantDepth,
+        );
+        _rebuildLayoutIfNeeded();
+      }
     });
+    if (attached) unawaited(_checkDescendants());
   }
 
   Future<void> _openDetails(Person person) async {
@@ -378,24 +443,26 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
     }
   }
 
-  /// Terse answers to "is there more up there?": a count, or nothing at all
-  /// when this is as far as the tree goes.
+  /// Terse answers to "is there more up there?": a count, or nothing at all when
+  /// the line really ends here.
   String? _ancestorLabel(AppLocalizations l10n) {
     if (!_layout.hasMoreAncestors) return null;
-    if (_ancestorDepth >= ApiConfig.maxAncestorDepth) return null;
+    if (_ancestorsExhausted) return null;
     return l10n.moreCount(_layout.hiddenAncestorCount);
   }
 
   /// Terse answers to "is there more below here?": a count, or nothing at all
-  /// when this is as far as the tree goes.
+  /// when this is as far as the line goes.
+  ///
+  /// There is no depth limit: a tap adds `ApiConfig.growthStep` generations and
+  /// the pill stays until asking brings nobody new.
   String? _descendantLabel(AppLocalizations l10n) {
-    if (_descendantDepth >= ApiConfig.maxDescendantDepth) return null;
     if (_descendantsExhausted) return null;
 
     final hidden = _hiddenDescendants;
     if (hidden == null) {
       // Still looking. Nothing is promised until the answer is in.
-      return _descendantCheckFailed ? l10n.moreUnknown : null;
+      return _descendantCountMissing ? l10n.moreUnknown : null;
     }
     return hidden > 0 ? l10n.moreCount(hidden) : null;
   }
@@ -417,18 +484,37 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
+          // Two controls in the top corner, X first and the arrow beside it.
+          //
+          // The X leaves the tree from wherever the walk happens to be. The arrow
+          // steps back through the people visited, which is what the system back
+          // gesture does on Android - but iOS puts no back button on the screen,
+          // so without the arrow the only way out of a walk there would be the X,
+          // which throws the trail away.
+          automaticallyImplyLeading: false,
+          leadingWidth: 96,
+          leading: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              IconButton(
+                key: const ValueKey<String>('tree-close'),
+                tooltip: l10n.treeCloseTooltip,
+                icon: const Icon(Icons.close_rounded),
+                onPressed: _close,
+              ),
+              IconButton(
+                key: const ValueKey<String>('tree-back'),
+                tooltip: l10n.treeBackTooltip,
+                icon: const Icon(Icons.arrow_back_rounded),
+                // Greyed out rather than gone when there is nothing behind this
+                // person: the corner keeps its shape, and the arrow still says a
+                // walk through the family can be undone.
+                onPressed: _history.isEmpty ? null : _goBack,
+              ),
+            ],
+          ),
           title: Text(text.displayName(focus), overflow: TextOverflow.ellipsis),
           actions: <Widget>[
-            // The walk can wander a long way; home is one tap back to the start.
-            if (_history.isNotEmpty)
-              IconButton(
-                key: const ValueKey<String>('tree-home'),
-                tooltip: l10n.treeHomeTooltip(
-                  text.displayName(_history.first.bundle.focus),
-                ),
-                icon: const Icon(Icons.home_outlined),
-                onPressed: _busy ? null : _goHome,
-              ),
             // Anything about the top of the tree belongs at the top of the screen,
             // and in the bar it never covers a person.
             if (ancestorLabel != null)
@@ -512,7 +598,7 @@ class _FamilyTreeScreenState extends State<FamilyTreeScreen> {
                         icon: Icons.expand_more,
                         label: descendantLabel,
                         onPressed: () => _loadMore(moreAncestors: false),
-                      ),
+                      )
                   ],
                 ),
               ),

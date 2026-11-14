@@ -68,12 +68,19 @@ String? formatLongDate(String? value, {String locale = 'en'}) {
 /// `Nov`, `Nov.` or `nov.`, depending on the language.
 String _shortMonth(String locale, int month) {
   try {
-    return DateFormat.MMM(locale).format(DateTime(2000, month));
+    return DateFormat.MMM(_intlLocale(locale)).format(DateTime(2000, month));
   } catch (_) {
     // No month data for this language; English is a readable last resort.
     return _fallbackMonthNames[month - 1];
   }
 }
+
+/// The locale to hand to intl for [locale].
+///
+/// Serbian is written in two scripts, and intl answers plain `sr` in Cyrillic.
+/// The app writes Serbian in Latin - the same letters its family codes use - so
+/// the month names come from `sr_Latn` and one screen never mixes the two.
+String _intlLocale(String locale) => locale == 'sr' ? 'sr_Latn' : locale;
 
 /// Age in years at death, when both years are known and plausible.
 ///

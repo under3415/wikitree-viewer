@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wikitree_viewer/core/constants.dart';
 import 'package:wikitree_viewer/core/failures.dart';
+import 'package:wikitree_viewer/data/key_parser.dart';
 import 'package:wikitree_viewer/data/person.dart';
 import 'package:wikitree_viewer/l10n/app_localizations.dart';
 import 'package:wikitree_viewer/ui/format/failure_text.dart';
@@ -7,7 +9,7 @@ import 'package:wikitree_viewer/ui/format/failure_text.dart';
 import 'helpers/localizations.dart';
 
 /// Every language the app ships.
-const List<String> _languages = <String>['en', 'de', 'es', 'pt', 'fr'];
+const List<String> _languages = <String>['en', 'de', 'es', 'pt', 'fr', 'sr'];
 
 const Person _albert = Person(
   id: 1,
@@ -52,7 +54,35 @@ void main() {
       'es': 'Ver árbol familiar',
       'pt': 'Ver árvore genealógica',
       'fr': "Afficher l'arbre familial",
+      'sr': 'Prikaži porodično stablo',
     });
+  });
+
+  test('every language suggests families its readers recognise', () {
+    for (final code in _languages) {
+      final examples = AppInfo.examplesFor(code);
+      expect(examples, hasLength(2), reason: code);
+      expect(examples.toSet(), hasLength(2), reason: code);
+      for (final example in examples) {
+        // Typing the example has to work, so it has to parse as a family code -
+        // including the ones with letters outside A-Z.
+        expect(
+          KeyParser.parse(example).wikiTreeId,
+          example,
+          reason: '$code: $example',
+        );
+      }
+    }
+
+    // A language the app does not speak falls back to the English pair.
+    expect(AppInfo.examplesFor('it'), AppInfo.examplesFor('en'));
+    // And the pair is not the same everywhere: that is the point.
+    expect(
+      AppInfo.examplesFor('de'),
+      <String>['Goethe-22', 'Van_Beethoven-1'],
+    );
+    expect(AppInfo.examplesFor('sr'), <String>['Karađorđević-13', 'Tesla-1']);
+    expect(AppInfo.examplesFor('fr'), <String>['Hugo-215', 'Bonaparte-1']);
   });
 
   test('counts are pluralised the way each language does it', () async {
@@ -73,6 +103,16 @@ void main() {
     expect(three['fr'], '3 de plus');
     expect(three['es'], '3 más');
     expect(three['pt'], '3 a mais');
+    // Serbian counts in three shapes: one, a few (two to four) and the rest.
+    expect(one['sr'], 'još 1 osoba');
+    expect(
+      (await loadLocalizations('sr')).moreCount(3),
+      'još 3 osobe',
+    );
+    expect(
+      (await loadLocalizations('sr')).moreCount(5),
+      'još 5 osoba',
+    );
   });
 
   group('dates', () {
@@ -91,6 +131,9 @@ void main() {
         'es': 'mar 1835',
         'pt': 'mar. 1835',
         'fr': 'mars 1835',
+        // Serbian month names come from `sr_Latn`: the app writes Serbian in
+        // Latin, and plain `sr` would answer in Cyrillic.
+        'sr': 'mar 1835',
       });
     });
 
@@ -137,6 +180,11 @@ void main() {
         'n. 1950',
         'Dates inconnues',
       ]);
+      expect(spans['sr'], <String>[
+        '1879\u20131955',
+        'rođ. 1950',
+        'Datumi nepoznati',
+      ]);
     });
   });
 
@@ -159,6 +207,10 @@ void main() {
     expect(
       emptyKey['fr'],
       'Saisissez un identifiant WikiTree ou un lien de profil.',
+    );
+    expect(
+      emptyKey['sr'],
+      'Unesite WikiTree ID ili link profila.',
     );
     expect(notFoundHint['es'], 'Revisa el código o pega el enlace del perfil.');
     expect(notFoundHint.values.toSet().length, _languages.length);

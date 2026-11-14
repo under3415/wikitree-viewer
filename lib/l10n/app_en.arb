@@ -14,37 +14,23 @@
   "lookupBusy": "Looking up…",
   "lookupPaste": "Paste a link",
   "lookupRecentTitle": "Recently opened",
-  "lookupExamplePrompt": "First time here? Try an example to see how a tree looks.",
-  "lookupTryExample": "Try {code}",
-  "@lookupTryExample": {
-    "description": "Button that opens the first example profile.",
-    "placeholders": {
-      "code": {
-        "type": "String",
-        "example": "Einstein-1"
-      }
-    }
+  "lookupExamplePrompt": "First time here? Open an example to see how a tree looks.",
+  "lookupExampleTry": "Try",
+  "@lookupExampleTry": {
+    "description": "Label in front of the first example code; the code next to it is the button."
   },
-  "lookupOrTry": "or {code}",
-  "@lookupOrTry": {
-    "description": "Second example profile, offered directly after the first one so the pair reads as two suggestions.",
-    "placeholders": {
-      "code": {
-        "type": "String",
-        "example": "Kennedy-96"
-      }
-    }
+  "lookupExampleOr": "or",
+  "@lookupExampleOr": {
+    "description": "Label between the two example codes, which are both buttons."
   },
 
-  "treeHomeTooltip": "Back to {name}",
-  "@treeHomeTooltip": {
-    "description": "Tooltip on the home button of the tree; jumps back to the person the tree started on.",
-    "placeholders": {
-      "name": {
-        "type": "String",
-        "example": "Albert Einstein"
-      }
-    }
+  "treeCloseTooltip": "Close the tree",
+  "@treeCloseTooltip": {
+    "description": "Tooltip on the X in the corner of the tree screen: leaves the tree and returns to the first screen."
+  },
+  "treeBackTooltip": "Back to the person before",
+  "@treeBackTooltip": {
+    "description": "Tooltip on the arrow next to the X: steps back through the people the walk through the family visited."
   },
   "treeTipsTitle": "Using the tree",
   "@treeTipsTitle": {
@@ -270,13 +256,13 @@
   "marriageEndedNote": "A marriage that ended is shown with its end date.",
 
   "errorEmptyKey": "Enter a WikiTree ID or a profile link.",
-  "errorTooLongKey": "That's too long to be a WikiTree ID. It usually looks like Einstein-1.",
-  "errorNoIdFound": "We couldn't find a WikiTree ID in that. Try something like Einstein-1.",
+  "errorTooLongKey": "That's too long to be a WikiTree ID. It usually looks like Windsor-1.",
+  "errorNoIdFound": "We couldn't find a WikiTree ID in that. Try something like Windsor-1.",
   "errorAmbiguousKey": "That looks like more than one WikiTree ID. Please enter just one.",
   "errorSpaceProfile": "That's a free-space page, not a person. This app shows people only.",
   "errorUnsupportedHost": "That link isn't a WikiTree profile link.",
-  "errorMalformedKey": "That WikiTree ID doesn't look right. Example: Einstein-1",
-  "hintPasteLink": "You can also paste a link like https://www.wikitree.com/wiki/Einstein-1",
+  "errorMalformedKey": "That WikiTree ID doesn't look right. Example: Windsor-1",
+  "hintPasteLink": "You can also paste a link like https://www.wikitree.com/wiki/Windsor-1",
   "hintLinkStart": "Links need to start with https://www.wikitree.com/wiki/",
   "errorNotFound": "We couldn't find that person on WikiTree.",
   "hintNotFound": "Check the code, or paste the profile link instead.",

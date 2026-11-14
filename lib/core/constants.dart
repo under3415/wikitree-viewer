@@ -20,13 +20,23 @@ abstract final class ApiConfig {
   static const int ancestorsDepth = 3;
   static const int descendantsDepth = 2;
 
-  /// How far the app will grow a tree on request.
+  /// How many generations one tap of a load-more pill adds.
   ///
-  /// Every extra generation can double the number of people, so this is a
-  /// deliberate ceiling rather than the API's limit: past six generations up a
-  /// tree is also too wide to read on a phone even when zoomed out.
-  static const int maxAncestorDepth = 6;
-  static const int maxDescendantDepth = 4;
+  /// There is no ceiling on how far a tree can be grown: somebody browsing a line
+  /// of kings wants to reach the bottom of it, however far that is. What is
+  /// bounded is the *step*, because each extra generation can double the number
+  /// of people - one generation at a time would mean a new request and a wider
+  /// tree for every tap, and ten at a time would answer a question nobody asked.
+  /// Two keeps a tap worth making and the requests few.
+  static const int growthStep = 2;
+
+  /// How many people one request may ask about.
+  ///
+  /// WikiTree answers a request for too many keys with a server error rather than
+  /// a partial answer: measured on this project, 40 keys came back fine and 124
+  /// keys failed. Growing the tree from its edge asks about a whole row at once,
+  /// so the row is sent in batches of this many.
+  static const int keyBatchSize = 40;
 }
 
 abstract final class WebConfig {
@@ -56,12 +66,44 @@ abstract final class AppInfo {
   /// master the launcher icons are rendered from (see README.md).
   static const String appIconAsset = 'art/app_icon512.png';
 
-  static const String exampleKey = 'Einstein-1';
+  /// The first example the lookup screen offers: Queen Elizabeth II.
+  ///
+  /// A family people already recognise, so the tree the example opens is worth
+  /// looking at rather than merely valid - and next to [secondExampleKey] it
+  /// shows that the surname is part of the code.
+  static const String exampleKey = 'Windsor-1';
 
   /// A second worked example, offered next to [exampleKey] so the suggestion on
   /// the lookup screen reads as "codes look like this" rather than "this is the
   /// only person the app knows".
   static const String secondExampleKey = 'Kennedy-96';
+
+  /// The two examples per language, because a family the app's own readers
+  /// recognise is worth more than a famous one from somewhere else: a German
+  /// reader is offered Goethe, a Serbian one Karađorđević.
+  ///
+  /// Both are always full codes - surname and number - so the pair shows how a
+  /// code is built, and both open a tree with several generations to look at.
+  /// [examplesFor] falls back to English for a language that is not listed.
+  ///
+  /// Every code here was opened against the live API, because an example that
+  /// does not open is worse than none. Two needed looking up rather than
+  /// guessing: Goethe is `Goethe-22` (there is no `Goethe-1`), and Victor Hugo is
+  /// `Hugo-215` - `Hugo-216` is a different family entirely. Bolívar's code
+  /// carries its accent, because that is the id WikiTree uses.
+  static const Map<String, List<String>> _examples =
+      <String, List<String>>{
+        'en': <String>[exampleKey, secondExampleKey],
+        'de': <String>['Goethe-22', 'Van_Beethoven-1'],
+        'es': <String>['Borges-69', 'Bolívar-11'],
+        'fr': <String>['Hugo-215', 'Bonaparte-1'],
+        'pt': <String>['Senna_da_Silva-1', 'Bragança-8'],
+        'sr': <String>['Karađorđević-13', 'Tesla-1'],
+      };
+
+  /// The pair of example codes for [languageCode], e.g. `de`.
+  static List<String> examplesFor(String languageCode) =>
+      _examples[languageCode] ?? _examples['en']!;
 
   /// Where the app's own share link points: `https://<host><path>?id=<code>`.
   ///

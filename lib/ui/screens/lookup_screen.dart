@@ -57,8 +57,37 @@ class _LookupScreenState extends State<LookupScreen> {
     // This screen stays mounted underneath the tree, so a link that arrives
     // while a tree is open still lands here and opens the tree it points at.
     _links = widget.links?.listen(_openLink);
+    // The insert keys belong to the box: they appear with the keyboard.
+    _inputFocus.addListener(_handleInputFocusChange);
     unawaited(_restoreLastCode());
     unawaited(_loadRecentCodes());
+  }
+
+  void _handleInputFocusChange() {
+    if (mounted) setState(() {});
+  }
+
+  /// Puts [character] where the cursor is, in place of any selection.
+  ///
+  /// A hyphen and an underscore sit on a second layer of every phone keyboard
+  /// (the 123 layer on iOS, the symbols page on Gboard), and a WikiTree ID needs
+  /// them for the surname and for the number after it. These keys are the
+  /// shortest path to both that no keyboard has to cooperate with. Writing the
+  /// controller directly is safe: `WikiTreeIdCaseFormatter` only reacts to typing
+  /// and only adds capitals, which `-` and `_` never need.
+  void _insert(String character) {
+    final value = _input.value;
+    final text = value.text;
+    final selection = value.selection;
+    final start = selection.isValid ? selection.start : text.length;
+    final end = selection.isValid ? selection.end : text.length;
+
+    _input.value = TextEditingValue(
+      text: text.replaceRange(start, end, character),
+      selection: TextSelection.collapsed(offset: start + character.length),
+    );
+    // The box is still where the typing happens, so it keeps the keyboard.
+    _inputFocus.requestFocus();
   }
 
   /// Reads the remembered codes, so typing can offer them.
@@ -110,6 +139,7 @@ class _LookupScreenState extends State<LookupScreen> {
   void dispose() {
     // The node is ours, so it is ours to dispose.
     _links?.cancel();
+    _inputFocus.removeListener(_handleInputFocusChange);
     _inputFocus.dispose();
     _input.dispose();
     super.dispose();
@@ -208,6 +238,11 @@ class _LookupScreenState extends State<LookupScreen> {
     final muted = theme.textTheme.bodyMedium?.copyWith(
       color: scheme.onSurfaceVariant,
     );
+    // Which families to suggest follows the language: the examples are people the
+    // reader is likely to recognise, not the same two names everywhere.
+    final examples = AppInfo.examplesFor(
+      Localizations.localeOf(context).languageCode,
+    );
 
     return Scaffold(
       body: SafeArea(
@@ -277,6 +312,17 @@ class _LookupScreenState extends State<LookupScreen> {
                               ),
                             ),
                           ),
+                          if (_inputFocus.hasFocus) ...<Widget>[
+                            const SizedBox(height: 8),
+                            // Part of the box's tap region on purpose: otherwise
+                            // the tap counts as "outside" the field, the field
+                            // unfocuses, and the key is gone from under the finger
+                            // before its tap is registered - which is exactly what
+                            // a click (or a slow tap) did.
+                            TextFieldTapRegion(
+                              child: _InsertKeys(onInsert: _insert),
+                            ),
+                          ],
                           if (suggestions.isNotEmpty) ...<Widget>[
                             const SizedBox(height: 8),
                             _RecentSuggestions(
@@ -326,24 +372,32 @@ class _LookupScreenState extends State<LookupScreen> {
                     textAlign: TextAlign.center,
                     style: muted,
                   ),
-                  // Two suggestions rather than one: one on its own reads like
+                  // Two examples rather than one: one on its own reads like
                   // the only family the app can open, and the pair also shows
-                  // that the surname is part of the code.
+                  // that the surname is part of the code. "Try" and "or" are
+                  // labels and only the codes are buttons.
+                  //
+                  // The codes are the ones people in this language know: Goethe
+                  // for a German reader, Karađorđević for a Serbian one.
+                  //
+                  // The gaps are all the same width so the "or" sits halfway
+                  // between the two codes rather than hugging one of them.
                   Wrap(
                     alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 12,
+                    runSpacing: 8,
                     children: <Widget>[
-                      TextButton(
-                        onPressed: _busy
-                            ? null
-                            : () => _open(AppInfo.exampleKey),
-                        child: Text(l10n.lookupTryExample(AppInfo.exampleKey)),
-                      ),
-                      TextButton(
-                        onPressed: _busy
-                            ? null
-                            : () => _open(AppInfo.secondExampleKey),
-                        child: Text(l10n.lookupOrTry(AppInfo.secondExampleKey)),
-                      ),
+                      for (var index = 0; index < examples.length; index++)
+                        _ExampleButton(
+                          label: index == 0
+                              ? l10n.lookupExampleTry
+                              : l10n.lookupExampleOr,
+                          code: examples[index],
+                          onPressed: _busy
+                              ? null
+                              : () => _open(examples[index]),
+                        ),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -399,6 +453,98 @@ class _Header extends StatelessWidget {
           style: theme.textTheme.bodyLarge?.copyWith(
             color: scheme.onSurfaceVariant,
           ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The two characters a WikiTree ID needs that phone keyboards keep on a second
+/// layer: `-` between the surname and the number, and `_` in names such as
+/// `Sachsen-Coburg_und_Gotha-4`.
+///
+/// Only on screen while the box has the keyboard, so the first screen does not
+/// grow a permanent toolbar for a problem that only exists while typing.
+class _InsertKeys extends StatelessWidget {
+  const _InsertKeys({required this.onInsert});
+
+  final ValueChanged<String> onInsert;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final style = OutlinedButton.styleFrom(
+      minimumSize: const Size(64, 48),
+      padding: EdgeInsets.zero,
+      textStyle: theme.textTheme.titleLarge,
+      foregroundColor: theme.colorScheme.onSurfaceVariant,
+      side: BorderSide(color: theme.colorScheme.outlineVariant),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    );
+    return Row(
+      children: <Widget>[
+        OutlinedButton(
+          key: const ValueKey<String>('lookup-insert-hyphen'),
+          onPressed: () => onInsert('-'),
+          style: style,
+          child: const Text('-'),
+        ),
+        const SizedBox(width: 8),
+        OutlinedButton(
+          key: const ValueKey<String>('lookup-insert-underscore'),
+          onPressed: () => onInsert('_'),
+          style: style,
+          child: const Text('_'),
+        ),
+      ],
+    );
+  }
+}
+
+/// One example family code, looking like the button it is.
+///
+/// The code is the whole label of the button; the word beside it ("Try", "or")
+/// says what the codes are for, so the button never repeats it. A plain text
+/// button, in the same style as the rest of the app's quiet actions.
+///
+/// The word and the button are one widget on purpose: left as separate children
+/// of the row above, a narrow phone broke the line between "or" and the code it
+/// belongs to.
+class _ExampleButton extends StatelessWidget {
+  const _ExampleButton({
+    required this.label,
+    required this.code,
+    required this.onPressed,
+  });
+
+  final String label;
+  final String code;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    // A Wrap, not a Row: at the largest text sizes the pair no longer fits on
+    // one line of a small phone, and the word can go above the code instead of
+    // overflowing.
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      // The same 12 as the row above, so the "or" between the two codes is the
+      // same distance from each of them.
+      spacing: 12,
+      runSpacing: 6,
+      children: <Widget>[
+        Text(
+          label,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        TextButton(
+          key: ValueKey<String>('lookup-example-$code'),
+          onPressed: onPressed,
+          child: Text(code),
         ),
       ],
     );

@@ -52,22 +52,19 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get lookupExamplePrompt =>
-      'Première visite ? Essayez un exemple pour voir à quoi ressemble un arbre.';
+      'Première visite ? Ouvrez un exemple pour voir à quoi ressemble un arbre.';
 
   @override
-  String lookupTryExample(String code) {
-    return 'Essayer $code';
-  }
+  String get lookupExampleTry => 'Essayer';
 
   @override
-  String lookupOrTry(String code) {
-    return 'ou $code';
-  }
+  String get lookupExampleOr => 'ou';
 
   @override
-  String treeHomeTooltip(String name) {
-    return 'Retour à $name';
-  }
+  String get treeCloseTooltip => 'Fermer l\'arbre';
+
+  @override
+  String get treeBackTooltip => 'Revenir à la personne précédente';
 
   @override
   String get treeTipsTitle => 'Utiliser l\'arbre';
@@ -263,11 +260,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get errorTooLongKey =>
-      'C\'est trop long pour un identifiant WikiTree. Cela ressemble généralement à Einstein-1.';
+      'C\'est trop long pour un identifiant WikiTree. Cela ressemble généralement à Windsor-1.';
 
   @override
   String get errorNoIdFound =>
-      'Nous n\'avons pas trouvé d\'identifiant WikiTree là-dedans. Essayez quelque chose comme Einstein-1.';
+      'Nous n\'avons pas trouvé d\'identifiant WikiTree là-dedans. Essayez quelque chose comme Windsor-1.';
 
   @override
   String get errorAmbiguousKey =>
@@ -283,11 +280,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get errorMalformedKey =>
-      'Cet identifiant WikiTree ne semble pas correct. Exemple : Einstein-1';
+      'Cet identifiant WikiTree ne semble pas correct. Exemple : Windsor-1';
 
   @override
   String get hintPasteLink =>
-      'Vous pouvez aussi coller un lien comme https://www.wikitree.com/wiki/Einstein-1';
+      'Vous pouvez aussi coller un lien comme https://www.wikitree.com/wiki/Windsor-1';
 
   @override
   String get hintLinkStart =>

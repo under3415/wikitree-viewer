@@ -194,4 +194,100 @@ void main() {
     expect(samuel.firstName, 'Samuel');
     expect(samuel.birthDate, '1835-11-30');
   });
+
+  group('a link only the parent knows', () {
+    // WikiTree answers `Father: -3` for a child of a semi-private parent, even
+    // when the app is looking at that parent, so the son arrives with no father.
+    const father = Person(
+      id: 9001,
+      wikiTreeId: 'Nakarada-1',
+      firstName: 'Radivoje',
+      lastNameAtBirth: 'Nakarada',
+    );
+    const son = Person(
+      id: 9002,
+      wikiTreeId: 'Nakarada-Kordic-1',
+      firstName: 'Dejan',
+      lastNameAtBirth: 'Nakarada-Kordic',
+    );
+
+    test('hangs the child where WikiTree said they hang', () {
+      final linkGraph = FamilyGraph()..addAll(<Person>[father, son]);
+      expect(linkGraph.childrenOf(father), isEmpty);
+
+      final revision = linkGraph.linkRevision;
+      linkGraph.recordChild(parentId: father.id, childId: son.id);
+
+      expect(
+        linkGraph.childrenOf(father).map((person) => person.id),
+        <int>[son.id],
+      );
+      expect(
+        linkGraph.parentsOf(son).map((person) => person.id),
+        <int>[father.id],
+      );
+      // Somebody already in memory can now be drawn, which is what the tree
+      // watches for to lay itself out again.
+      expect(linkGraph.linkRevision, revision + 1);
+
+      // The same link twice is the same link.
+      linkGraph.recordChild(parentId: father.id, childId: son.id);
+      expect(linkGraph.linkRevision, revision + 1);
+      expect(linkGraph.childrenOf(father), hasLength(1));
+    });
+
+    test('waits for a child who has not been fetched yet', () {
+      final linkGraph = FamilyGraph()..add(father);
+      final revision = linkGraph.linkRevision;
+      linkGraph.recordChild(parentId: father.id, childId: son.id);
+
+      // Nothing to draw yet, so nothing to redraw.
+      expect(linkGraph.linkRevision, revision);
+      expect(linkGraph.childrenOf(father), isEmpty);
+
+      linkGraph.add(son);
+      expect(
+        linkGraph.childrenOf(father).map((person) => person.id),
+        <int>[son.id],
+      );
+    });
+
+    test('finds the other half of the union through the recorded link', () {
+      // The mother is named by the son, the father only by his own Children list;
+      // together they are the couple the son descends from.
+      const mother = Person(
+        id: 9003,
+        wikiTreeId: 'Kordic-10',
+        firstName: 'Branka',
+        lastNameAtBirth: 'Kordic',
+      );
+      const sonOfBoth = Person(
+        id: 9004,
+        wikiTreeId: 'Nakarada-Kordic-1',
+        firstName: 'Dejan',
+        lastNameAtBirth: 'Nakarada-Kordic',
+        motherId: 9003,
+      );
+      final linkGraph = FamilyGraph()
+        ..addAll(<Person>[father, mother, sonOfBoth]);
+      linkGraph.recordChild(parentId: father.id, childId: sonOfBoth.id);
+
+      expect(
+        linkGraph.partnersOf(father.id).map((link) => link.person.id),
+        <int>[mother.id],
+      );
+      expect(
+        linkGraph.partnersOf(mother.id).map((link) => link.person.id),
+        <int>[father.id],
+      );
+    });
+
+    test('ignores a link to nobody', () {
+      final linkGraph = FamilyGraph()..add(father);
+      linkGraph.recordChild(parentId: father.id, childId: father.id);
+      linkGraph.recordChild(parentId: 0, childId: son.id);
+      linkGraph.recordChild(parentId: father.id, childId: -3);
+      expect(linkGraph.childrenOf(father), isEmpty);
+    });
+  });
 }

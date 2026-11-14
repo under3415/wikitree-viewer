@@ -10,9 +10,10 @@ theirs, and a listing that looks official invites both confusion and a takedown
 request. If you would rather keep the brackets off, use plain `WikiTree Viewer`
 (16 characters) and rely on the first line of the full description.
 
-Locales match the app's five languages: `en-US`, `de-DE`, `es-ES`, `pt-BR`,
-`fr-FR`. If you prefer European Portuguese, change "compartilhar"/"aparelho" to
-"partilhar"/"telemóvel" and name the locale `pt-PT`.
+Locales match the app's six languages: `en-US`, `de-DE`, `es-ES`, `pt-BR`,
+`fr-FR`, `sr-RS` (Serbian in Latin script). If you prefer European Portuguese,
+change "compartilhar"/"aparelho" to "partilhar"/"telemóvel" and name the locale
+`pt-PT`.
 
 ---
 
@@ -45,7 +46,7 @@ living behind a subscription that ends the day the payments stop. Nothing you
 recorded disappears because a bill went unpaid.
 
 LOOK UP PEOPLE WHO ARE ALREADY THERE
-Type a WikiTree ID or paste a profile link. Try Einstein-1 or Kennedy-96 to see
+Type a WikiTree ID or paste a profile link. Try Windsor-1 or Kennedy-96 to see
 how it works: the app draws the family around that person as an hourglass tree,
 with ancestors above, descendants below, and photos, dates and places on every
 card.
@@ -56,9 +57,9 @@ through it, and send it to family and friends as a link they can tap.
 
 MADE FOR READING
 - drag to pan, pinch to zoom, tap anyone to make them the middle of the tree
-- back and home, so exploring never loses your place
+- back and close, so exploring never loses your place
 - long-press for details and a link to the full profile on WikiTree
-- English, German, Spanish, Portuguese and French
+- English, German, Spanish, Portuguese, French and Serbian
 
 WHAT IT DOES NOT DO
 - no account, no sign-in, no ads, no analytics, no tracking
@@ -103,7 +104,7 @@ eingetragen haben, verschwindet, weil eine Rechnung offen blieb.
 
 MENSCHEN NACHSEHEN, DIE SCHON DA SIND
 Geben Sie eine WikiTree-ID ein oder fügen Sie einen Profillink ein. Probieren Sie
-Einstein-1 oder Kennedy-96: Die App zeichnet die Familie um diese Person als
+Goethe-22 oder Van_Beethoven-1: Die App zeichnet die Familie um diese Person als
 Sanduhr-Stammbaum - Vorfahren oben, Nachkommen unten -, mit Fotos, Daten und Orten
 auf jeder Karte.
 
@@ -115,9 +116,9 @@ Freunde.
 ZUM LESEN GEMACHT
 - ziehen zum Verschieben, mit zwei Fingern zoomen, tippen macht eine Person zur
   Mitte des Baums
-- Zurück und Start, damit Sie beim Erkunden nie die Stelle verlieren
+- Zurück und Schließen, damit Sie beim Erkunden nie die Stelle verlieren
 - lange tippen für Details und den Link zum vollständigen Profil auf WikiTree
-- Englisch, Deutsch, Spanisch, Portugiesisch und Französisch
+- Englisch, Deutsch, Spanisch, Portugiesisch, Französisch und Serbisch
 
 WAS DIE APP NICHT MACHT
 - kein Konto, keine Anmeldung, keine Werbung, keine Analyse, kein Tracking
@@ -161,7 +162,7 @@ registraste desaparece porque una factura quedara sin pagar.
 
 BUSCAR PERSONAS QUE YA ESTÁN
 Escribe un identificador de WikiTree o pega el enlace de un perfil. Prueba con
-Einstein-1 o Kennedy-96: la app dibuja la familia alrededor de esa persona como un
+Borges-69 o Bolívar-11: la app dibuja la familia alrededor de esa persona como un
 árbol de reloj de arena, con los antepasados arriba, los descendientes abajo y
 fotos, fechas y lugares en cada tarjeta.
 
@@ -172,7 +173,7 @@ tu familia y a tus amigos con un enlace que pueden tocar.
 HECHO PARA LEER
 - arrastra para mover, pellizca para ampliar, toca a alguien para ponerlo en el
   centro del árbol
-- botones de atrás e inicio, para no perder nunca el sitio mientras exploras
+- botones de atrás y cerrar, para no perder nunca el sitio mientras exploras
 - mantén pulsado para ver los detalles y el enlace al perfil completo en WikiTree
 - inglés, alemán, español, portugués y francés
 
@@ -217,8 +218,8 @@ uma assinatura que acaba no dia em que você deixa de pagar. Nada do que você
 registrou desaparece porque uma fatura ficou em aberto.
 
 ENCONTRE QUEM JÁ ESTÁ LÁ
-Digite um ID do WikiTree ou cole o link de um perfil. Experimente Einstein-1 ou
-Kennedy-96: o app desenha a família em volta dessa pessoa como uma árvore ampulheta,
+Digite um ID do WikiTree ou cole o link de um perfil. Experimente Senna_da_Silva-1 ou
+Bragança-8: o app desenha a família em volta dessa pessoa como uma árvore ampulheta,
 com ancestrais acima, descendentes abaixo e fotos, datas e lugares em cada cartão.
 
 VEJA SUA PRÓPRIA ÁRVORE
@@ -228,9 +229,9 @@ para a família e os amigos com um link que eles podem tocar.
 FEITO PARA LER
 - arraste para mover, belisque para ampliar, toque em alguém para colocá-lo no centro
   da árvore
-- botões de voltar e início, para nunca perder o lugar enquanto explora
+- botões de voltar e fechar, para nunca perder o lugar enquanto explora
 - toque e segure para ver detalhes e o link do perfil completo no WikiTree
-- inglês, alemão, espanhol, português e francês
+- inglês, alemão, espanhol, português, francês e sérvio
 
 O QUE ELE NÃO FAZ
 - sem conta, sem login, sem anúncios, sem análise, sem rastreamento
@@ -274,8 +275,8 @@ derrière un abonnement qui s'arrête le jour où vous cessez de payer. Rien de 
 vous avez saisi ne disparaît parce qu'une facture est restée impayée.
 
 RETROUVER DES PERSONNES DÉJÀ PRÉSENTES
-Saisissez un identifiant WikiTree ou collez le lien d'un profil. Essayez Einstein-1
-ou Kennedy-96 : l'application dessine la famille autour de cette personne comme un
+Saisissez un identifiant WikiTree ou collez le lien d'un profil. Essayez Hugo-215
+ou Bonaparte-1 : l'application dessine la famille autour de cette personne comme un
 arbre en sablier, ancêtres en haut, descendants en bas, avec photos, dates et lieux
 sur chaque carte.
 
@@ -286,9 +287,9 @@ et envoyez-le à votre famille et à vos amis sous forme de lien à toucher.
 CONÇUE POUR LIRE
 - faites glisser pour déplacer, pincez pour zoomer, touchez quelqu'un pour le placer
   au centre de l'arbre
-- boutons retour et accueil, pour ne jamais perdre votre place en explorant
+- boutons retour et fermer, pour ne jamais perdre votre place en explorant
 - appui long pour les détails et le lien vers le profil complet sur WikiTree
-- anglais, allemand, espagnol, portugais et français
+- anglais, allemand, espagnol, portugais, français et serbe
 
 CE QU'ELLE NE FAIT PAS
 - pas de compte, pas de connexion, pas de publicité, pas de mesure d'audience, pas de
@@ -299,6 +300,67 @@ CE QU'ELLE NE FAIT PAS
 
 WikiTree Viewer est un compagnon de lecture pour WikiTree, pas une copie : l'arbre
 que vous voyez ici est celui que la communauté entretient là-bas.
+```
+
+---
+
+## Serbian (sr-RS)
+
+Written in Latin script, like the app. Play accepts `sr-RS` for both scripts and
+picks the one the text uses.
+
+**Title** (28/30)
+
+```
+WikiTree Viewer (nezvanično)
+```
+
+**Short description** (79/80)
+
+```
+WikiTree Viewer: istražite i podelite svoje ili porodično stablo poznatih osoba
+```
+
+**Full description**
+
+```
+WikiTree Viewer je nezvanična aplikacija samo za čitanje porodičnih stabala
+objavljenih na WikiTree-u. Nije povezana sa WikiTree.com, a svi podaci o porodici
+dolaze sa WikiTree-ovog javnog API-ja pod njihovim uslovima.
+
+ZAŠTO SE WIKITREE ISPLATI
+WikiTree je svetsko porodično stablo koje je izgradila zajednica: otvoreno je za
+svakoga i besplatno - bez pretplate i bez plaćanja. To znači više nego što zvuči:
+stablo koje danas možete čitati biće čitljivo i vašim unucima, umesto da bude
+zaključano iza pretplate koja prestaje onog dana kada prestanete da plaćate. Ništa
+što ste zabeležili ne nestaje zato što je račun ostao neplaćen.
+
+PRONAĐITE LJUDE KOJI SU VEĆ TAMO
+Unesite WikiTree ID ili nalepite link profila. Probajte Karađorđević-13 ili Tesla-1
+da vidite kako radi: aplikacija crta porodicu oko te osobe kao stablo peščanog sata,
+sa precima gore, potomcima dole, i fotografijama, datumima i mestima na svakoj
+kartici.
+
+POGLEDAJTE SVOJE STABLO
+Najpre napravite svoje stablo na WikiTree.com - besplatno je - pa ga otvorite ovde,
+prođite kroz njega i pošaljite ga porodici i prijateljima kao link koji mogu da
+dodirnu.
+
+NAPRAVLJENA ZA ČITANJE
+- prevucite prstom da pomerite prikaz, skupite dva prsta da zumirate, dodirnite osobu
+  da postane sredina stabla
+- dugmad za nazad i zatvaranje, da nikada ne izgubite mesto dok istražujete
+- držite osobu pritisnutu za detalje i link do celog profila na WikiTree-u
+- engleski, nemački, španski, portugalski, francuski i srpski
+
+ŠTA NE RADI
+- bez naloga, bez prijave, bez reklama, bez analitike, bez praćenja
+- samo čitanje: ništa se ne menja niti otprema, i nijedan podatak profila se ne čuva
+  na uređaju
+- samo anonimni izveštaji o rušenju, da bi kvar mogao da se ispravi
+
+WikiTree Viewer je pratilac za čitanje WikiTree-a, ne njegova kopija: stablo koje
+ovde vidite isto je ono koje zajednica tamo održava.
 ```
 
 ---
@@ -327,5 +389,5 @@ Play asks a few things this text does not cover, and they matter for review:
   official, and the emblem in `art/` is derived from their logo.
 - **Screenshots**: the tree of `Kennedy-96` with a couple of generations open shows
   the app better than any of the text above. Capture at 1080×1920, at least four,
-  and use the same five languages for the screenshot captions if you want the
+  and use the same six languages for the screenshot captions if you want the
   full "localised" badge.

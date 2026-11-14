@@ -52,22 +52,19 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get lookupExamplePrompt =>
-      '¿Primera vez aquí? Prueba un ejemplo para ver cómo es un árbol.';
+      '¿Primera vez aquí? Abre un ejemplo para ver cómo es un árbol.';
 
   @override
-  String lookupTryExample(String code) {
-    return 'Probar $code';
-  }
+  String get lookupExampleTry => 'Prueba';
 
   @override
-  String lookupOrTry(String code) {
-    return 'o $code';
-  }
+  String get lookupExampleOr => 'o';
 
   @override
-  String treeHomeTooltip(String name) {
-    return 'Volver a $name';
-  }
+  String get treeCloseTooltip => 'Cerrar el árbol';
+
+  @override
+  String get treeBackTooltip => 'Volver a la persona anterior';
 
   @override
   String get treeTipsTitle => 'Cómo usar el árbol';
@@ -263,11 +260,11 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get errorTooLongKey =>
-      'Eso es demasiado largo para un ID de WikiTree. Normalmente tiene la forma Einstein-1.';
+      'Eso es demasiado largo para un ID de WikiTree. Normalmente tiene la forma Windsor-1.';
 
   @override
   String get errorNoIdFound =>
-      'No encontramos ningún ID de WikiTree ahí. Prueba con algo como Einstein-1.';
+      'No encontramos ningún ID de WikiTree ahí. Prueba con algo como Windsor-1.';
 
   @override
   String get errorAmbiguousKey =>
@@ -283,11 +280,11 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get errorMalformedKey =>
-      'Ese ID de WikiTree no parece correcto. Ejemplo: Einstein-1';
+      'Ese ID de WikiTree no parece correcto. Ejemplo: Windsor-1';
 
   @override
   String get hintPasteLink =>
-      'También puedes pegar un enlace como https://www.wikitree.com/wiki/Einstein-1';
+      'También puedes pegar un enlace como https://www.wikitree.com/wiki/Windsor-1';
 
   @override
   String get hintLinkStart =>

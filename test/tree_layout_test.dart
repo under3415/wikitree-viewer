@@ -144,6 +144,28 @@ void main() {
     }
   });
 
+  test('keeps every row in one piece, with nobody stranded at the margin', () {
+    final layout = builder.build(_bundle());
+    final rows = <int, List<TreeNodeLayout>>{};
+    for (final node in layout.nodes) {
+      rows.putIfAbsent(node.generation, () => <TreeNodeLayout>[]).add(node);
+    }
+
+    final gap = const TreeMetrics().horizontalGap;
+    for (final row in rows.values) {
+      row.sort((a, b) => a.rect.left.compareTo(b.rect.left));
+      for (var i = 1; i < row.length; i++) {
+        expect(
+          row[i].rect.left - row[i - 1].rect.right,
+          closeTo(gap, 0.001),
+          reason:
+              '${row[i - 1].person.id} and ${row[i].person.id} should be '
+              'neighbours: a row that tears leaves somebody alone at the margin',
+        );
+      }
+    }
+  });
+
   test('links every displayed parent to their child', () {
     final layout = builder.build(_bundle());
 

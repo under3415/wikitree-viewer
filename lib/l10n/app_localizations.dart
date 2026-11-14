@@ -20,6 +20,7 @@ import 'app_localizations_en.dart';
 import 'app_localizations_es.dart';
 import 'app_localizations_fr.dart';
 import 'app_localizations_pt.dart';
+import 'app_localizations_sr.dart';
 
 // ignore_for_file: type=lint
 
@@ -112,6 +113,7 @@ abstract class AppLocalizations {
     Locale('es'),
     Locale('fr'),
     Locale('pt'),
+    Locale('sr'),
   ];
 
   /// The app name. A brand: keep it untranslated.
@@ -177,26 +179,32 @@ abstract class AppLocalizations {
   /// No description provided for @lookupExamplePrompt.
   ///
   /// In en, this message translates to:
-  /// **'First time here? Try an example to see how a tree looks.'**
+  /// **'First time here? Open an example to see how a tree looks.'**
   String get lookupExamplePrompt;
 
-  /// Button that opens the first example profile.
+  /// Label in front of the first example code; the code next to it is the button.
   ///
   /// In en, this message translates to:
-  /// **'Try {code}'**
-  String lookupTryExample(String code);
+  /// **'Try'**
+  String get lookupExampleTry;
 
-  /// Second example profile, offered directly after the first one so the pair reads as two suggestions.
+  /// Label between the two example codes, which are both buttons.
   ///
   /// In en, this message translates to:
-  /// **'or {code}'**
-  String lookupOrTry(String code);
+  /// **'or'**
+  String get lookupExampleOr;
 
-  /// Tooltip on the home button of the tree; jumps back to the person the tree started on.
+  /// Tooltip on the X in the corner of the tree screen: leaves the tree and returns to the first screen.
   ///
   /// In en, this message translates to:
-  /// **'Back to {name}'**
-  String treeHomeTooltip(String name);
+  /// **'Close the tree'**
+  String get treeCloseTooltip;
+
+  /// Tooltip on the arrow next to the X: steps back through the people the walk through the family visited.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to the person before'**
+  String get treeBackTooltip;
 
   /// Title of the how-to dialog shown the first time a tree is opened.
   ///
@@ -506,13 +514,13 @@ abstract class AppLocalizations {
   /// No description provided for @errorTooLongKey.
   ///
   /// In en, this message translates to:
-  /// **'That\'s too long to be a WikiTree ID. It usually looks like Einstein-1.'**
+  /// **'That\'s too long to be a WikiTree ID. It usually looks like Windsor-1.'**
   String get errorTooLongKey;
 
   /// No description provided for @errorNoIdFound.
   ///
   /// In en, this message translates to:
-  /// **'We couldn\'t find a WikiTree ID in that. Try something like Einstein-1.'**
+  /// **'We couldn\'t find a WikiTree ID in that. Try something like Windsor-1.'**
   String get errorNoIdFound;
 
   /// No description provided for @errorAmbiguousKey.
@@ -536,13 +544,13 @@ abstract class AppLocalizations {
   /// No description provided for @errorMalformedKey.
   ///
   /// In en, this message translates to:
-  /// **'That WikiTree ID doesn\'t look right. Example: Einstein-1'**
+  /// **'That WikiTree ID doesn\'t look right. Example: Windsor-1'**
   String get errorMalformedKey;
 
   /// No description provided for @hintPasteLink.
   ///
   /// In en, this message translates to:
-  /// **'You can also paste a link like https://www.wikitree.com/wiki/Einstein-1'**
+  /// **'You can also paste a link like https://www.wikitree.com/wiki/Windsor-1'**
   String get hintPasteLink;
 
   /// No description provided for @hintLinkStart.
@@ -640,8 +648,14 @@ class _AppLocalizationsDelegate
   }
 
   @override
-  bool isSupported(Locale locale) =>
-      <String>['de', 'en', 'es', 'fr', 'pt'].contains(locale.languageCode);
+  bool isSupported(Locale locale) => <String>[
+    'de',
+    'en',
+    'es',
+    'fr',
+    'pt',
+    'sr',
+  ].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -660,6 +674,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
       return AppLocalizationsFr();
     case 'pt':
       return AppLocalizationsPt();
+    case 'sr':
+      return AppLocalizationsSr();
   }
 
   throw FlutterError(

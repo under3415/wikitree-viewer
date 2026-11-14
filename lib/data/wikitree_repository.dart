@@ -82,11 +82,58 @@ class WikiTreeRepository {
     throw lastFailure ?? const NotFoundFailure();
   }
 
+  /// Adds [generations] generations beyond [edge] - the top row for ancestors, the
+  /// bottom row for descendants - and merges the answer into the graph.
+  ///
+  /// This is what a "more" tap asks for, and it asks for **only the new part**.
+  /// The obvious alternative, re-asking for the whole cone at the deeper depth,
+  /// sends the entire tree again with every tap (748 people at ten generations
+  /// down for Habsburg-32), and it stops working as soon as the edge itself is
+  /// wider than WikiTree will answer about in one request - a 124-key request
+  /// measured a server error where 40 keys were fine. So the edge is batched.
+  Future<void> grow(
+    Iterable<Person> edge, {
+    required bool ancestors,
+    int generations = ApiConfig.growthStep,
+  }) async {
+    final keys = <String>[
+      for (final person in edge)
+        if (person.id > 0) person.wikiTreeId,
+    ];
+    if (keys.isEmpty) return;
+
+    WikiTreeFailure? failure;
+    for (var start = 0; start < keys.length; start += ApiConfig.keyBatchSize) {
+      final batch = keys
+          .skip(start)
+          .take(ApiConfig.keyBatchSize)
+          .join(',');
+      try {
+        final response = ancestors
+            ? await api.getPeople(key: batch, ancestors: generations)
+            : await api.getPeople(key: batch, descendants: generations);
+        _graph.addAll(response.people);
+      } on WikiTreeFailure catch (error) {
+        // Whatever the other batches brought is kept; the failure is reported so
+        // the screen can say so rather than pretend the tree grew.
+        failure = error;
+      }
+    }
+
+    if (failure != null) throw failure;
+  }
+
   /// How many recorded children [people] have that are not on screen yet.
   ///
   /// WikiTree sends a person's children only when those children happen to be
   /// part of the same answer, so "is there anybody below this row?" has to be
   /// asked. [WikiTreeApi.probeChildren] asks for ids only, which is cheap.
+  ///
+  /// The ids in that answer are also the only way to learn some links: a child of
+  /// a semi-private parent names their father as `-3`, while the parent's
+  /// `Children` list names the child plainly. Each id is recorded with
+  /// [FamilyGraph.recordChild], so a son WikiTree has already sent the app can
+  /// actually be drawn under his father instead of being counted forever.
   ///
   /// [shown] is what the tree is drawing, not what is in memory: a person can be
   /// in the graph from an earlier look and still be below the bottom row.
@@ -115,6 +162,7 @@ class WikiTreeRepository {
         continue;
       }
       for (final id in ids) {
+        _graph.recordChild(parentId: entry.value, childId: id);
         if (!shown.contains(id)) hidden.add(id);
       }
     }

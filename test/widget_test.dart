@@ -87,10 +87,63 @@ class _FamilyApi implements WikiTreeApi {
   void close() {}
 }
 
-/// A family with one recorded generation above that is only returned when the
-/// caller asks for four generations.
+/// A parent whose son's own record hides him.
+///
+/// WikiTree answers `Father: -3` for a child of a semi-private parent - a
+/// placeholder naming nobody - so the son arrives with no father at all. Only the
+/// parent's `Children` list names the link. This is the shape measured on
+/// Nakarada-1, where the tree offered "1 more" forever for a son it already had
+/// in memory.
+class _HiddenParentApi implements WikiTreeApi {
+  static const Person _father = Person(
+    id: 1,
+    wikiTreeId: 'Nakarada-1',
+    firstName: 'Radivoje',
+    lastNameAtBirth: 'Nakarada',
+    birthDate: '1930-00-00',
+  );
+
+  static const Person _son = Person(
+    id: 2,
+    wikiTreeId: 'Nakarada-Kordic-1',
+    firstName: 'Dejan',
+    lastNameAtBirth: 'Nakarada-Kordic',
+    birthDate: '1960-00-00',
+  );
+
+  @override
+  Future<PeopleResponse> getPeople({
+    required String key,
+    int ancestors = 0,
+    int descendants = 0,
+  }) async => const PeopleResponse(
+    people: <Person>[_father, _son],
+    resolvedId: 1,
+  );
+
+  @override
+  Future<RelativesResponse> getRelatives({
+    required List<String> keys,
+    bool siblings = true,
+    bool spouses = true,
+  }) async => const RelativesResponse(groups: <RelativeGroup>[]);
+
+  @override
+  Future<Map<String, List<int>?>> probeChildren({
+    required List<String> keys,
+  }) async => <String, List<int>?>{
+    for (final key in keys)
+      key: key == 'Nakarada-1' ? const <int>[2] : const <int>[],
+  };
+
+  @override
+  void close() {}
+}
+
+/// A family with one recorded generation above, which growth brings in.
 class _DeepApi implements WikiTreeApi {
   int lastAncestors = 0;
+  int coneRequests = 0;
 
   static const Person _abraham = Person(
     id: 3,
@@ -115,13 +168,18 @@ class _DeepApi implements WikiTreeApi {
     int descendants = 0,
   }) async {
     lastAncestors = ancestors;
-    return PeopleResponse(
-      people: <Person>[
-        _FamilyApi._albert,
-        _hermann,
-        if (ancestors >= 4) _abraham,
-      ],
-      resolvedId: _FamilyApi._albert.id,
+    coneRequests++;
+    // The first answer is the tree; a later one is a tap on "more", which is
+    // asked for from the top row and is where Abraham turns up.
+    if (coneRequests > 1) {
+      return const PeopleResponse(
+        people: <Person>[_hermann, _abraham],
+        resolvedId: 2,
+      );
+    }
+    return const PeopleResponse(
+      people: <Person>[_FamilyApi._albert, _hermann],
+      resolvedId: 1,
     );
   }
 
@@ -141,10 +199,10 @@ class _DeepApi implements WikiTreeApi {
   void close() {}
 }
 
-/// A family with one recorded generation below that is only returned when the
-/// caller asks for three generations down.
+/// A family with one recorded generation below, which growth brings in.
 class _BranchApi implements WikiTreeApi {
   int lastDescendants = 0;
+  int coneRequests = 0;
 
   static const Person _hans = Person(
     id: 4,
@@ -162,13 +220,18 @@ class _BranchApi implements WikiTreeApi {
     int descendants = 0,
   }) async {
     lastDescendants = descendants;
-    return PeopleResponse(
-      people: <Person>[
-        _FamilyApi._albert,
-        _FamilyApi._hermann,
-        if (descendants >= 3) _hans,
-      ],
-      resolvedId: _FamilyApi._albert.id,
+    coneRequests++;
+    // The first answer is the tree; a later one is a tap on "more", asked for from
+    // the bottom row, and that is where Hans Albert turns up.
+    if (coneRequests > 1) {
+      return const PeopleResponse(
+        people: <Person>[_FamilyApi._hermann, _hans],
+        resolvedId: 2,
+      );
+    }
+    return const PeopleResponse(
+      people: <Person>[_FamilyApi._albert, _FamilyApi._hermann],
+      resolvedId: 1,
     );
   }
 
@@ -185,6 +248,162 @@ class _BranchApi implements WikiTreeApi {
   }) async => <String, List<int>?>{
     for (final key in keys)
       key: key == 'Einstein-1' ? const <int>[4] : const <int>[],
+  };
+
+  @override
+  void close() {}
+}
+
+/// A focus with no children of its own and a sibling who has them.
+///
+/// The sibling sits on the focus row, so a probe of "everybody on the bottom
+/// row" counts the sibling's children as descendants of the person this tree is
+/// about - and growing the tree never shows them.
+class _SiblingApi implements WikiTreeApi {
+  static const Person _focus = Person(
+    id: 1,
+    wikiTreeId: 'Tesla-1',
+    firstName: 'Nikola',
+    lastNameAtBirth: 'Tesla',
+    fatherId: 2,
+  );
+
+  static const Person _father = Person(
+    id: 2,
+    wikiTreeId: 'Tesla-2',
+    firstName: 'Milutin',
+    lastNameAtBirth: 'Tesla',
+  );
+
+  static const Person _sister = Person(
+    id: 3,
+    wikiTreeId: 'Tesla-3',
+    firstName: 'Milka',
+    lastNameAtBirth: 'Tesla',
+    fatherId: 2,
+  );
+
+  @override
+  Future<PeopleResponse> getPeople({
+    required String key,
+    int ancestors = 0,
+    int descendants = 0,
+  }) async => const PeopleResponse(
+    people: <Person>[_focus, _father, _sister],
+    resolvedId: 1,
+  );
+
+  @override
+  Future<RelativesResponse> getRelatives({
+    required List<String> keys,
+    bool siblings = true,
+    bool spouses = true,
+  }) async => const RelativesResponse(groups: <RelativeGroup>[]);
+
+  @override
+  Future<Map<String, List<int>?>> probeChildren({
+    required List<String> keys,
+  }) async => <String, List<int>?>{
+    for (final key in keys)
+      key: key == 'Tesla-3' ? const <int>[4] : const <int>[],
+  };
+
+  @override
+  void close() {}
+}
+
+/// A single line of descendants, long enough to need several taps to reach the end.
+class _LongLineApi implements WikiTreeApi {
+  static const Person _focus = Person(id: 1, wikiTreeId: 'Line-1');
+
+  static const Person _first = Person(
+    id: 10,
+    wikiTreeId: 'Line-10',
+    fatherId: 1,
+  );
+
+  static const Person _second = Person(
+    id: 11,
+    wikiTreeId: 'Line-11',
+    fatherId: 10,
+  );
+
+  static const Person _third = Person(
+    id: 12,
+    wikiTreeId: 'Line-12',
+    fatherId: 11,
+  );
+
+  static const Person _fourth = Person(
+    id: 13,
+    wikiTreeId: 'Line-13',
+    fatherId: 12,
+  );
+
+  static const Person _fifth = Person(
+    id: 14,
+    wikiTreeId: 'Line-14',
+    fatherId: 13,
+  );
+
+  static const Person _sixth = Person(
+    id: 15,
+    wikiTreeId: 'Line-15',
+    fatherId: 14,
+  );
+
+  /// Never drawn: this is the one person waiting below the depth limit.
+  static const Person _seventh = Person(
+    id: 16,
+    wikiTreeId: 'Line-16',
+    fatherId: 15,
+  );
+
+  int lastDescendants = 0;
+
+  @override
+  Future<PeopleResponse> getPeople({
+    required String key,
+    int ancestors = 0,
+    int descendants = 0,
+  }) async {
+    lastDescendants = descendants;
+    return const PeopleResponse(
+      people: <Person>[
+        _focus,
+        _first,
+        _second,
+        _third,
+        _fourth,
+        _fifth,
+        _sixth,
+        _seventh,
+      ],
+      resolvedId: 1,
+    );
+  }
+
+  @override
+  Future<RelativesResponse> getRelatives({
+    required List<String> keys,
+    bool siblings = true,
+    bool spouses = true,
+  }) async => const RelativesResponse(groups: <RelativeGroup>[]);
+
+  @override
+  Future<Map<String, List<int>?>> probeChildren({
+    required List<String> keys,
+  }) async => <String, List<int>?>{
+    for (final key in keys)
+      key: switch (key) {
+        'Line-10' => const <int>[11],
+        'Line-11' => const <int>[12],
+        'Line-12' => const <int>[13],
+        'Line-13' => const <int>[14],
+        'Line-14' => const <int>[15],
+        'Line-15' => const <int>[16],
+        _ => const <int>[],
+      },
   };
 
   @override
@@ -311,6 +530,17 @@ String _fieldText(WidgetTester tester) {
   return field.controller?.text ?? '';
 }
 
+/// The Android back button, as the platform delivers it.
+///
+/// The tree screen has an arrow in the corner as well, but it steps back through
+/// the people visited rather than out of the screen, so a test that presses it
+/// would not be testing what the platform's back button does - `PopScope` is what
+/// the platform back goes through.
+Future<void> _pressSystemBack(WidgetTester tester) async {
+  await tester.binding.handlePopRoute();
+  await tester.pumpAndSettle();
+}
+
 Future<void> _openTree(
   WidgetTester tester, {
   WikiTreeApi? api,
@@ -337,15 +567,91 @@ void main() {
     expect(find.byType(TextField), findsOneWidget);
     expect(find.text('Show family tree'), findsOneWidget);
     expect(find.text('Paste a link'), findsOneWidget);
-    expect(find.text('Try Einstein-1'), findsOneWidget);
+    // "Try" and "or" are labels, and only the codes are buttons: the pair reads
+    // as something to press rather than as a sentence.
+    expect(find.text('Try'), findsOneWidget);
+    expect(find.text('or'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('lookup-example-Windsor-1')),
+      findsOneWidget,
+    );
     // A second example, so the pair reads as "codes look like this" instead of
     // "this is the only family the app can open".
-    expect(find.text('or Kennedy-96'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('lookup-example-Kennedy-96')),
+      findsOneWidget,
+    );
     // The field used to carry a helper line repeating what the buttons say.
     expect(
       tester.widget<TextField>(find.byType(TextField)).decoration?.helperText,
       isNull,
     );
+  });
+
+  testWidgets('an example code is one tap to a tree', (tester) async {
+    await tester.pumpWidget(
+      WikiTreeViewerApp(
+        repository: WikiTreeRepository(api: _FamilyApi()),
+        preferences: _Prefs(),
+      ),
+    );
+
+    // The whole code is the button, so the tap target is the code itself rather
+    // than a word in front of it. It sits under the buttons, below the fold of
+    // the test surface, so it has to be scrolled into view first.
+    final example = find.byKey(
+      const ValueKey<String>('lookup-example-Windsor-1'),
+    );
+    await tester.ensureVisible(example);
+    await tester.pumpAndSettle();
+    await tester.tap(example);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(TreeView), findsOneWidget);
+  });
+
+  testWidgets('the insert keys put a hyphen or an underscore in the box', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_app());
+
+    // They belong to the box: no keyboard, no keys, no clutter.
+    expect(
+      find.byKey(const ValueKey<String>('lookup-insert-hyphen')),
+      findsNothing,
+    );
+
+    await tester.tap(find.byType(TextField));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey<String>('lookup-insert-hyphen')),
+      findsOneWidget,
+    );
+
+    await tester.enterText(find.byType(TextField), 'Windsor');
+    await tester.pumpAndSettle();
+
+    // A hyphen is two taps on iOS (123, then -) and on Gboard (symbols page); this
+    // is one, and the keyboard stays open for the number. The press is held for a
+    // frame on purpose: a real finger (and every mouse) takes longer than that, and
+    // the field used to treat the press as "outside", drop the keyboard and take
+    // the key away before it ever fired.
+    final hyphen = find.byKey(const ValueKey<String>('lookup-insert-hyphen'));
+    await tester.ensureVisible(hyphen);
+    final press = await tester.startGesture(tester.getCenter(hyphen));
+    await tester.pump();
+    await press.up();
+    await tester.pumpAndSettle();
+    expect(_fieldText(tester), 'Windsor-');
+    expect(hyphen, findsOneWidget, reason: 'the keys stay while the box has focus');
+
+    final underscore = find.byKey(
+      const ValueKey<String>('lookup-insert-underscore'),
+    );
+    await tester.ensureVisible(underscore);
+    await tester.tap(underscore);
+    await tester.pumpAndSettle();
+    expect(_fieldText(tester), 'Windsor-_');
   });
 
   testWidgets('explains input that contains no WikiTree ID', (tester) async {
@@ -459,15 +765,26 @@ void main() {
     expect(find.text('Hermann Einstein'), findsOneWidget);
 
     // Back is a step in the walk through the family, not the way out.
-    await tester.pageBack();
-    await tester.pumpAndSettle();
+    await _pressSystemBack(tester);
     expect(find.byType(TreeView), findsOneWidget);
     expect(find.text('Albert Einstein'), findsOneWidget);
 
     // With nowhere left to go back to, it leaves the tree.
-    await tester.pageBack();
-    await tester.pumpAndSettle();
+    await _pressSystemBack(tester);
     expect(find.text('Show family tree'), findsOneWidget);
+  });
+
+  testWidgets('a son whose record hides his father is drawn under him', (
+    tester,
+  ) async {
+    // The probe is what learns the link, so the shape that used to leave a
+    // permanent "1 more" is the same one that now draws the son.
+    await _openTree(tester, api: _HiddenParentApi());
+
+    expect(find.text('Radivoje Nakarada'), findsOneWidget);
+    expect(find.byKey(TreeView.nodeKey(2)), findsOneWidget);
+    expect(find.text('1 more'), findsNothing);
+    expect(find.text('More'), findsNothing);
   });
 
   testWidgets('hides both buttons when there is nobody left either way', (
@@ -499,7 +816,11 @@ void main() {
     await tester.tap(pill);
     await tester.pumpAndSettle();
 
-    expect(api.lastAncestors, 4);
+    expect(
+      api.lastAncestors,
+      ApiConfig.growthStep,
+      reason: 'the tap asks for two generations beyond the top row',
+    );
     expect(find.byKey(TreeView.nodeKey(3)), findsOneWidget);
     expect(pill, findsNothing);
   });
@@ -587,6 +908,52 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Show family tree'), findsOneWidget);
+  });
+
+  testWidgets('the first screen offers examples in the device language', (
+    tester,
+  ) async {
+    tester.platformDispatcher.localesTestValue = <Locale>[const Locale('de')];
+    addTearDown(tester.platformDispatcher.clearLocalesTestValue);
+
+    await tester.pumpWidget(_app());
+    await tester.pumpAndSettle();
+
+    // A German reader is offered Goethe rather than an English royal family, and
+    // the pair still shows what a code looks like.
+    expect(
+      find.byKey(const ValueKey<String>('lookup-example-Goethe-22')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('lookup-example-Van_Beethoven-1')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('lookup-example-Windsor-1')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('the Serbian first screen speaks Serbian and shows Serbian codes', (
+    tester,
+  ) async {
+    tester.platformDispatcher.localesTestValue = <Locale>[const Locale('sr')];
+    addTearDown(tester.platformDispatcher.clearLocalesTestValue);
+
+    await tester.pumpWidget(_app());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Prikaži porodično stablo'), findsOneWidget);
+    expect(find.text('Probajte'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('lookup-example-Karađorđević-13')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('lookup-example-Tesla-1')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('a code that is not found suggests checking it', (tester) async {
@@ -728,8 +1095,7 @@ void main() {
     expect(preferences.treeTipsSeen, isTrue);
 
     // Away and back in: they have done their job and stay away.
-    await tester.pageBack();
-    await tester.pumpAndSettle();
+    await _pressSystemBack(tester);
     await tester.tap(find.text('Show family tree'));
     await tester.pumpAndSettle();
 
@@ -859,24 +1225,92 @@ void main() {
     expect(find.textContaining("couldn't find a WikiTree ID"), findsNothing);
   });
 
-  testWidgets('home returns to the starting person in one tap', (tester) async {
+  testWidgets('X leaves the tree from wherever the walk is', (tester) async {
     await _openTree(tester);
-    expect(find.byKey(const ValueKey<String>('tree-home')), findsNothing);
+    // The way out is always there - unlike the home button it replaces, which
+    // only appeared once the walk had started.
+    expect(find.byKey(const ValueKey<String>('tree-close')), findsOneWidget);
 
     await tester.tap(find.byKey(TreeView.nodeKey(2)));
     await tester.pumpAndSettle();
     expect(find.text('Hermann Einstein'), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey<String>('tree-home')));
+    // One tap out, ignoring the trail behind it: stepping back through the
+    // people already visited is what the back button is for.
+    await tester.tap(find.byKey(const ValueKey<String>('tree-close')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Albert Einstein'), findsOneWidget);
-    expect(find.byKey(const ValueKey<String>('tree-home')), findsNothing);
-
-    // The trail is gone, so back leaves the tree rather than walking it again.
-    await tester.pageBack();
-    await tester.pumpAndSettle();
     expect(find.text('Show family tree'), findsOneWidget);
+    expect(find.byType(TreeView), findsNothing);
+  });
+
+  testWidgets('the arrow beside the X steps back through the walk', (
+    tester,
+  ) async {
+    await _openTree(tester);
+
+    // The corner holds both buttons on the first person too, so it never shifts:
+    // the arrow is greyed out because there is nothing behind this person.
+    final back = find.byKey(const ValueKey<String>('tree-back'));
+    final close = find.byKey(const ValueKey<String>('tree-close'));
+    expect(back, findsOneWidget);
+    expect(tester.widget<IconButton>(back).onPressed, isNull);
+
+    // X on the left, the arrow to its right, as the corner reads.
+    expect(
+      tester.getCenter(close).dx,
+      lessThan(tester.getCenter(back).dx),
+    );
+
+    await tester.tap(find.byKey(TreeView.nodeKey(2)));
+    await tester.pumpAndSettle();
+    expect(find.text('Hermann Einstein'), findsOneWidget);
+    expect(tester.widget<IconButton>(back).onPressed, isNotNull);
+
+    // One step back, on screen, where iOS has no system back button to offer.
+    await tester.tap(back);
+    await tester.pumpAndSettle();
+    expect(find.text('Albert Einstein'), findsOneWidget);
+    expect(find.byType(TreeView), findsOneWidget);
+    expect(tester.widget<IconButton>(back).onPressed, isNull);
+  });
+
+  testWidgets('does not promise the children of brothers and sisters', (
+    tester,
+  ) async {
+    await _openTree(tester, api: _SiblingApi());
+
+    // The sister in the middle row has a child. It is not a descendant of the
+    // person this tree is about, so growing the tree could never show it: a
+    // button here is a promise the app cannot keep (Tesla-1 used to say "2 more"
+    // and add nothing).
+    expect(
+      find.byKey(const ValueKey<String>('tree-more-descendants')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('keeps growing until the line itself ends', (tester) async {
+    final api = _LongLineApi();
+    await _openTree(tester, api: api);
+
+    final pill = find.byKey(const ValueKey<String>('tree-more-descendants'));
+    expect(find.text('1 more'), findsOneWidget);
+
+    // Two generations per tap and no ceiling: the pill stays as long as somebody
+    // is below it (Habsburg-32 has more than six generations of them).
+    var taps = 0;
+    while (pill.evaluate().isNotEmpty && taps < 10) {
+      await tester.tap(pill);
+      await tester.pumpAndSettle();
+      taps++;
+    }
+
+    expect(taps, 3, reason: 'depth 2 -> 4 -> 6 -> 8, one tap per two generations');
+    // The last person in the line is on screen, so the tree reached the end of it
+    // rather than a limit: nobody is left stuck above people they cannot see.
+    expect(find.byKey(TreeView.nodeKey(16)), findsOneWidget);
+    expect(pill, findsNothing);
   });
 
   testWidgets('offers a count below, on the right, and loads it', (
@@ -901,7 +1335,11 @@ void main() {
     await tester.tap(pill);
     await tester.pumpAndSettle();
 
-    expect(api.lastDescendants, 3);
+    expect(
+      api.lastDescendants,
+      ApiConfig.growthStep,
+      reason: 'the tap asks for two generations beyond the bottom row',
+    );
     expect(find.byKey(TreeView.nodeKey(4)), findsOneWidget);
     // The new bottom row has nobody below it, so the button is gone.
     expect(pill, findsNothing);

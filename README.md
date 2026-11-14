@@ -17,7 +17,7 @@ WikiTree API and remains subject to WikiTree's terms.
 
 Shipped on the Play Store and in daily use. The data layer, lookup flow, layout
 engine, the interactive tree (pan, zoom, tap to re-centre, long-press for
-details), photos, on-demand generations, deep links and the five languages are all
+details), photos, on-demand generations, deep links and the six languages are all
 in place and tested.
 
 | Area | State |
@@ -39,9 +39,13 @@ in place and tested.
 ## Using the tree
 
 - **Tap** a person: they become the middle of the tree and their family is
-  loaded around them. **Back** returns to the person you were looking at before,
-  so a walk through a family can be undone a step at a time, and **home** (which
-  appears once you have wandered) jumps straight back to where the tree started.
+  loaded around them. The **arrow** next to the X steps back to the person you
+  were looking at before, so a walk through a family can be undone a step at a
+  time - and Android's system back gesture does the same. iOS has no on-screen
+  back button of its own, which is why the arrow is there: without it the only way
+  out of a walk on an iPhone would be the X, which throws the trail away. The
+  **X**, top-left, closes the tree from wherever the walk is and returns to the
+  first screen.
 - **Long-press** a person: their details. Long-press again on someone in that
   view to keep walking the family.
 - **Drag** to pan and **pinch** to zoom. There are no zoom buttons: a pinch is
@@ -98,6 +102,17 @@ Surnames are not limited to A-Z either. `Marić-75` (Mileva Marić) is a real ID
 so any Unicode letter is accepted, both when typing and when the app follows a
 tap inside the tree. There is a clear button in the box for starting again.
 
+### The two characters no keyboard gives you
+
+A WikiTree ID needs a hyphen (`Windsor-1`) and occasionally an underscore
+(`Sachsen-Coburg_und_Gotha-4`). Both sit on a second layer of every phone
+keyboard - the 123 layer on iOS, the symbols page on Gboard - and no Flutter app
+can add keys to the system keyboard. So the app ships its own: while the box has
+the keyboard, two keys sit under it, `-` and `_`, and each one inserts at the
+cursor in a single tap (`_InsertKeys` in `lib/ui/screens/lookup_screen.dart`).
+They disappear with the keyboard, because outside typing there is nothing for
+them to do.
+
 ### Sharing a family, and opening links
 
 The share button offers two things, because they suit different people:
@@ -152,8 +167,9 @@ something to load:
 
 | Pill | Where | Meaning |
 | --- | --- | --- |
-| `▲ 16 more` | top right, in the app bar | WikiTree has 16 people recorded above the top row; tap to load the next generation |
-| `▼ 5 more` | bottom right | 5 people are recorded below the bottom row; tap to load them |
+| `▲ 16 more` | top right, in the app bar | WikiTree has 16 people recorded above the top row; tap to load two more generations |
+| `▼ 5 more` | bottom right | 5 people are recorded below the bottom row; tap to load two more generations |
+| `▼ More` | bottom right | somebody is below, but no exact count came back (a failed look, or a bottom row too wide to ask about in one request) |
 
 Both pills disappear when there is nobody left, so their absence is the answer
 that the tree has reached the end of the recorded family. Neither number is a
@@ -165,6 +181,11 @@ guess:
   answer is ids only, measured at a few hundred bytes per person on the bottom
   row - far cheaper than the generation it describes.
 
+The bottom row means the bottom row of *this* person's descendants. Brothers,
+sisters and in-laws share the middle row with the focus, and their children are
+not part of this tree: counting them put a "2 more" pill under Nikola Tesla, who
+has no descendants, and tapping it could only ever add nothing.
+
 WikiTree keeps the children of a private profile out of that answer altogether, so
 for a living person the app asks a different question instead: `getPeople` for
 one generation below that row, which does include them as limited records (a
@@ -172,10 +193,17 @@ living parent with three children measured 2.2 KB). Either way the pill only
 appears when somebody is really there - a button that loads nothing is worse
 than no button.
 
-Growth stops at six generations up and four down (`ApiConfig.maxAncestorDepth`,
-`maxDescendantDepth`). Loading everything instead was rejected: each generation
-can double the number of people (3 -> 6 generations is up to 8x the profiles),
-and a tree that wide is unreadable on a phone even zoomed right out.
+Growth has **no ceiling**. Every tap adds two generations (`ApiConfig.growthStep`),
+and the pill stays as long as asking brings somebody new, so a line of kings can
+be followed to its end however far down that is. Two at a time rather than
+everything is a courtesy to the phone and to WikiTree: each generation can double
+the number of people (Habsburg-32 is 87 boxes four generations down and 293 six
+generations down, on a canvas 24 000 px wide), and one request per tap is what
+makes the growth feel immediate.
+
+The probe that feeds the number is skipped when the bottom row is wider than
+`_probeLimit` people: that would be one key per person in a single request for a
+number nobody needs, so the pill says `More` instead - and it still works.
 
 
 
@@ -350,7 +378,7 @@ Never committed (the `.gitignore` covers them):
 There is **no WikiTree API key** to leak: the API is keyless, and `appId` is just
 a label that tells WikiTree who is calling.
 
-The privacy policy lives in `docs/privacy/index.html`, in all five languages on
+The privacy policy lives in `docs/privacy/index.html`, in all six languages on
 one page. Push it as-is and enable GitHub Pages (Settings → Pages → *Deploy from
 a branch*, `main` / `/docs`), and it is served at
 `https://under3415.github.io/wikitree-viewer/privacy/` - the URL both Play Console
@@ -417,9 +445,45 @@ One starting person costs **two** requests:
 `nuclear=1` is deliberately avoided: measured against the live API it inflated a
 single lookup from 21 KB to 114 KB by pulling in every ancestor's siblings.
 
-Asking for one more generation ("more ancestors above" / "more descendants") is
-one more `getPeople` call at the deeper depth; the `getRelatives` call it repeats
-is served from the session cache. Nothing is fetched until the user asks.
+Asking for more is **incremental**, not a re-download: the tree asks for two
+generations beyond the row on the screen, from that row (`WikiTreeRepository.grow`),
+and merges the answer into the graph. The edge of a big tree can be wider than
+WikiTree will answer about in one request - measured here, 40 keys came back fine
+and 124 keys answered with a server error - so the edge goes out in batches of
+`ApiConfig.keyBatchSize`. Nothing is fetched until the user asks, and a tap costs
+the same whether the tree has 30 people or 1000.
+
+What that replaced, and why: the old version re-asked for the whole cone at the
+deeper depth on every tap. For Habsburg-32 that was 748 people in one answer at
+ten generations down, and once the edge itself grew past the key limit the request
+failed outright - which is what "WikiTree had a problem answering that" was.
+Measured with the batched growth on the same family: taps reach 10 generations
+down (752 boxes) and 9 up (1052 boxes) with no failure, 1-5 s per tap.
+
+### How a row is laid out
+
+People are placed by generation first, then each row is ordered so families stay
+together - birth order to begin with, then a few passes that pull each person
+towards the median position of their relatives, with couples finally moved next
+to each other. Positions come next: every pass asks each box where it would like
+to be, and the whole row is then laid out as **one block** centred on the median
+of those wishes.
+
+The block is what keeps the chart readable. An earlier version moved boxes one at
+a time and only ever pushed them right to avoid overlapping, so a box whose
+relatives sat far away jumped there and left the boxes before it behind: the
+Bonaparte-1 row used to put Joséphine 14 px from the left margin, 2 700 px of
+empty canvas away from Napoleon, with the couple's bar crossing all of it. The
+same measurement now reads 26 px between every pair of neighbours (the standard
+gap) and a canvas 3 449 px wide instead of 5 900.
+
+The person the tree is about is not placed any differently: the focus row is laid
+out like every other row, and only the card itself is marked. The ordering passes
+end on the one that anchors a row to the row *above* it, because parents are what
+define a sibling group - everyone keeps their birth place, a partner sits beside
+their partner, and the person searched for is first in the row only when they are
+genuinely the eldest there (Windsor-1 is: Elizabeth, Philip, Margaret; Bonaparte-1
+is second of fourteen, because Joséphine was born six years before him).
 
 ### How the tree joins people
 
@@ -454,12 +518,15 @@ a cold start costs two small requests.
 - biographies are never requested or displayed - the app links to the profile
 - marriages marked `do_not_display` are hidden
 - private and living people appear as limited cards, never as errors
+- a link WikiTree hides on a child but shows on the parent is kept: the son of a
+  semi-private father is drawn under him rather than offered as "1 more" forever
 
 ## Languages
 
-The app speaks English, German, Spanish, Portuguese and French, and follows the
-device language: `MaterialApp` picks the closest of the five, and anything else
-falls back to English. Every word a user can see lives in `lib/l10n/app_<code>.arb`.
+The app speaks English, German, Spanish, Portuguese, French and Serbian, and
+follows the device language: `MaterialApp` picks the closest of the six, and
+anything else falls back to English. Every word a user can see lives in
+`lib/l10n/app_<code>.arb`.
 
 - `app_en.arb` is the template. It carries the placeholders and the notes for
   translators, and a key exists only once it is in this file.
@@ -484,13 +551,27 @@ Three rules keep wording out of the data layer:
   `14 mars 1879`.
 - `WikiTreeFailure` carries a reason code rather than a message;
   `describeFailure` (`lib/ui/format/failure_text.dart`) supplies the two lines a
-  screen shows, so the same failure reads correctly in all five languages.
+  screen shows, so the same failure reads correctly in all six languages.
 - `shareMessage` is handed the localisations it needs, so a shared message
   arrives in the language of the person sending it.
 
 Counts are real plurals - `{count, plural, =1{1 more} other{{count} more}}` - so
 German gets `1 weitere Person` and `3 weitere Personen` rather than one wording
-forced onto both.
+forced onto both. Serbian uses all three of its shapes: `još 1 osoba`,
+`još 3 osobe`, `još 5 osoba`.
+
+Serbian is written in Latin here, the same letters its family codes use. `intl`
+answers plain `sr` in Cyrillic, so month names come from its `sr_Latn` data
+(`_intlLocale` in `lib/util/dates.dart`) and one screen never mixes the two
+scripts.
+
+The two example codes on the first screen follow the language as well
+(`AppInfo.examplesFor`, `lib/core/constants.dart`): Goethe and van Beethoven in
+German, Borges and Bolívar in Spanish, Hugo and Napoléon in French, Senna and
+Pedro I in Portuguese, Karađorđević and Tesla in Serbian, and the Windsors and the
+Kennedys in English. Every one of them was opened against the live API before it
+was written down: Goethe is `Goethe-22` because there is no `Goethe-1`, and Victor
+Hugo is `Hugo-215` because `Hugo-216` is a different family.
 
 To add a language, copy `app_en.arb` to `app_<code>.arb`, translate the values,
 run `flutter gen-l10n`, and it appears in `supportedLocales`.
@@ -549,6 +630,14 @@ The API is inconsistent, so the parsing code is defensive by design:
 - `status` is `0` from some actions and `""` from others, and can carry a
   non-fatal notice (for example the `getAncestors` deprecation message)
 - private profiles return only `Id`, `Name` and privacy flags
+- a child of a semi-private parent comes back naming their parent `-3`, a
+  placeholder for somebody the API will not identify - even when the app is
+  looking at that very parent. The parent asked the other way round names the
+  child plainly in its `Children` list, so `FamilyGraph.recordChild` keeps that
+  link (`getRelatives` with `getChildren=1`, ids only). Without it a son already
+  in memory has nobody to hang from: the tree cannot draw him, and "more
+  descendants" counts him on every look. Measured on `Nakarada-1`, where the son's
+  own record said `Father: -3` while his father's `Children` list named him
 - `getPeople` does honour `Spouses` when it is named in `fields`, but each entry
   embeds a whole profile: asking for it took one 2-generation lookup from 6.5 KB
   to 16.2 KB. The `spouses=1` flag is accepted and silently ignored. The tree

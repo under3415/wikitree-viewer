@@ -12,6 +12,26 @@ class FamilyGraph {
   final Map<int, List<SpouseLink>> _spouses = <int, List<SpouseLink>>{};
   Map<int, List<int>>? _childrenByParent;
 
+  /// Links learned from a parent's `Children` list rather than from the child's
+  /// own record, and the same links the other way round.
+  ///
+  /// WikiTree gives a child of a semi-private parent `Father: -3` - a placeholder
+  /// for "somebody you may not identify" - even when the app is looking at that
+  /// very parent. Asked from the other side, the parent answers with
+  /// `Children: {<id>: {Father: <the parent>}}`, which is the same fact without
+  /// the veil. Without it the child sits in memory with nobody to hang from: the
+  /// tree cannot draw them, and the "more descendants" probe counts them on every
+  /// look. Measured on Nakarada-1, where the son answered `Father: -3`.
+  final Map<int, Set<int>> _recordedChildren = <int, Set<int>>{};
+  final Map<int, Set<int>> _recordedParents = <int, Set<int>>{};
+
+  /// Bumped whenever a recorded link makes somebody already in memory drawable.
+  ///
+  /// The tree watches it: a link that attaches a person changes the rows, so the
+  /// layout has to be built again - and the row that was just asked about is no
+  /// longer the bottom row.
+  int linkRevision = 0;
+
   int get length => _people.length;
 
   Iterable<Person> get people => _people.values;
@@ -38,6 +58,29 @@ class FamilyGraph {
       if (person != null) add(person);
     }
   }
+
+  /// Records that [childId] is a child of [parentId], because WikiTree said so in
+  /// the parent's `Children` list.
+  ///
+  /// The child does not have to be in memory yet: the link waits in the map and
+  /// attaches them the moment they are fetched. That is what makes asking a
+  /// semi-private parent for their children enough - the answer's children name
+  /// their father as `-3`, and this is the thing that hangs them in the tree.
+  void recordChild({required int parentId, required int childId}) {
+    if (parentId <= 0 || childId <= 0 || parentId == childId) return;
+    final children = _recordedChildren.putIfAbsent(parentId, () => <int>{});
+    if (!children.add(childId)) return;
+    _recordedParents.putIfAbsent(childId, () => <int>{}).add(parentId);
+    _childrenByParent = null;
+    // Only a child already in memory changes what can be drawn right now; a link
+    // to somebody not fetched yet matters when they arrive.
+    if (_people.containsKey(childId)) linkRevision++;
+  }
+
+  /// True when the link came from the parent's `Children` list rather than from
+  /// the child's own `Father`/`Mother`.
+  bool isRecordedChildOf(int parentId, int childId) =>
+      _recordedChildren[parentId]?.contains(childId) ?? false;
 
   /// Records (or replaces) the spouses of a person.
   void addSpouses(int personId, Iterable<SpouseLink> links) {
@@ -105,23 +148,26 @@ class FamilyGraph {
           ..sort(_byBirthDate);
 
     for (final child in children) {
-      final otherId = child.fatherId == personId
-          ? child.motherId
-          : child.fatherId;
-      if (otherId == null || otherId == personId) continue;
-      if (!known.add(otherId)) continue;
-      final other = _people[otherId];
-      if (other == null) continue;
-      partners.add(SpouseLink(person: other));
+      // Either parent of this child is the other half of the union - including a
+      // parent known only from the parent's own `Children` list.
+      for (final other in parentsOf(child)) {
+        if (other.id == personId) continue;
+        if (!known.add(other.id)) continue;
+        partners.add(SpouseLink(person: other));
+      }
     }
 
     return List<SpouseLink>.unmodifiable(partners);
   }
 
-  List<Person> parentsOf(Person person) => <Person?>[
-    byId(person.fatherId),
-    byId(person.motherId),
-  ].whereType<Person>().toList(growable: false);
+  List<Person> parentsOf(Person person) {
+    final ids = <int>{
+      ?person.fatherId,
+      ?person.motherId,
+      ...?_recordedParents[person.id],
+    };
+    return <Person>[for (final id in ids) ?byId(id)];
+  }
 
   List<Person> childrenOf(Person person) {
     final index = _childrenByParent ??= _buildChildrenIndex();
@@ -183,18 +229,25 @@ class FamilyGraph {
   }
 
   Map<int, List<int>> _buildChildrenIndex() {
-    final index = <int, List<int>>{};
+    final index = <int, Set<int>>{};
     for (final person in _people.values) {
       final fatherId = person.fatherId;
       if (fatherId != null) {
-        index.putIfAbsent(fatherId, () => <int>[]).add(person.id);
+        index.putIfAbsent(fatherId, () => <int>{}).add(person.id);
       }
       final motherId = person.motherId;
       if (motherId != null) {
-        index.putIfAbsent(motherId, () => <int>[]).add(person.id);
+        index.putIfAbsent(motherId, () => <int>{}).add(person.id);
       }
     }
-    return index;
+    // Links that only the parent's `Children` list knew about. A set, because a
+    // child can be both in that list and named by their own record.
+    for (final entry in _recordedChildren.entries) {
+      index.putIfAbsent(entry.key, () => <int>{}).addAll(entry.value);
+    }
+    return <int, List<int>>{
+      for (final entry in index.entries) entry.key: entry.value.toList(),
+    };
   }
 
   static int _byBirthDate(Person a, Person b) {

@@ -373,7 +373,13 @@ class TreeLayoutBuilder {
       return !_sameOrder(before, row);
     }
 
-    for (var pass = 0; pass < 4; pass++) {
+    // Five passes, so the last one to make a difference orders each row by the row
+    // *above* it. That is the order brothers and sisters are defined by: they share
+    // those parents, so they keep their birth places. Ending on the pass that looks
+    // at the row below instead pushed whoever has children in this tree to the
+    // front of their row - which is why the person the tree is about always ended
+    // up on the left, with all the brothers and sisters trailing after him.
+    for (var pass = 0; pass < 5; pass++) {
       var changed = false;
       if (pass.isEven) {
         for (var i = 1; i < order.length; i++) {
@@ -437,9 +443,18 @@ class TreeLayoutBuilder {
       ..addAll(grouped);
   }
 
-  /// Places boxes left to right within each row, moving each one towards the
-  /// median of its relatives. Boxes never overlap because the sweep keeps order
-  /// and enforces the minimum gap.
+  /// Places boxes left to right within each row, keeping every row in one piece.
+  ///
+  /// Each pass asks every box where it would like to be - the median position of
+  /// its relatives in the rows above and below - and then lays the whole row out
+  /// as a single block centred on the median of those wishes. The block is what
+  /// matters: an earlier version moved boxes one at a time, and a box whose
+  /// relatives sat far away jumped there and left the boxes before it behind, so a
+  /// row could tear into a lonely box at the margin with a marriage line crossing
+  /// empty space towards the rest of the family.
+  ///
+  /// Nobody is placed differently because they are the focus: the focus row is
+  /// laid out like every other row, and only the box itself is marked.
   Map<int, double> _placeX(
     Map<int, List<int>> rows,
     List<int> order,
@@ -479,28 +494,22 @@ class TreeLayoutBuilder {
           : order.reversed.toList(growable: false);
       for (final generation in sequence) {
         final row = rows[generation]!;
-        final desired = <int, double>{
-          for (final personId in row) personId: desiredFor(personId),
-        };
 
-        var cursor = double.negativeInfinity;
+        final wishes = <double>[
+          for (final personId in row) desiredFor(personId),
+        ]..sort();
+        final anchor = wishes[wishes.length ~/ 2];
+
+        var total = -metrics.horizontalGap;
+        for (final personId in row) {
+          total += _widthFor(personId, focusId) + metrics.horizontalGap;
+        }
+
+        var left = anchor - total / 2;
         for (final personId in row) {
           final width = _widthFor(personId, focusId);
-          var left = desired[personId]! - width / 2;
-          if (left < cursor) left = cursor;
           centres[personId] = left + width / 2;
-          cursor = left + width + metrics.horizontalGap;
-        }
-
-        // Re-centre the row over the positions it wanted, so packing drift does
-        // not push the whole tree to the right.
-        var drift = 0.0;
-        for (final personId in row) {
-          drift += desired[personId]! - centres[personId]!;
-        }
-        drift /= row.length;
-        for (final personId in row) {
-          centres[personId] = centres[personId]! + drift;
+          left += width + metrics.horizontalGap;
         }
       }
     }
